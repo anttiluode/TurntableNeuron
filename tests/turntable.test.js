@@ -77,3 +77,41 @@ test('a vector platform computes XOR; the load platform cannot', () => {
   assert.ok(!c.functions_reachable.load.includes('0110'));
   assert.ok(c.vector_mode_monotonicity.adding_a_carriage_reduced_output > 0);
 });
+
+/* ---- v4 / R9: listeners locked to the sender's pilot ---- */
+const R9 = require('../experiments/r9_entrain.js');
+
+test('v4 defaults leave v2/v3 untouched (kickWeights null = all ones, clockLearn 0)', () => {
+  const run = conf => { const y = new Yard({ kick: 0.4, threshold: 0.8, ...conf }); y.keepHistory = 1e6;
+    y.train(0, [1, 1, 0], 0); y.train(2, [0, 1, 1], 5); y.run(300); return JSON.stringify(y.history.map(h => h.theta)); };
+  assert.strictEqual(run({}), run({ kickWeights: [1, 1, 1] }));
+  const pilot = new Yard({ weights: [0, 1, 1], kickWeights: [1, 0, 0], kick: 0.4, threshold: 0.1 });
+  pilot.carriage(0, 0); pilot.run(200);
+  assert.strictEqual(pilot.load, 0);                           // a pilot steers but never loads
+});
+
+test('locked listeners route through any common delay; free ones only within a tick or two', () => {
+  const free = { kick: 0 }, lock = { kick: R9.KICK };
+  for (const d of [-12, -6, -3, 3, 6, 12]) {
+    assert.ok(R9.routedOK(lock, { d }), `locked, delay ${d}`);
+    assert.ok(!R9.routedOK(free, { d }), `free, delay ${d}`);
+  }
+  assert.ok(R9.routedOK(free, { d: 0 }) && R9.routedOK(lock, { d: 0 }));
+});
+
+test('locking does not rescue jitter on the data itself', () => {
+  const lock = { kick: R9.KICK };
+  assert.ok(!R9.routedOK(lock, { dataJ: -3 }) || !R9.routedOK(lock, { dataJ: 3 }));
+  assert.ok(!R9.routedOK(lock, { dataJ: 4 }) && !R9.routedOK(lock, { dataJ: -4 }));
+});
+
+test('clock learning tracks a sender of another period; the locked XOR survives common delay', () => {
+  const lock = { kick: R9.KICK }, learn = { kick: R9.KICK, learn: R9.LEARN };
+  assert.ok(!R9.routedOK(lock, { Ps: 30, scaled: true }) && R9.routedOK(learn, { Ps: 30, scaled: true }));
+  assert.ok(R9.routedOK(learn, { Ps: 40, scaled: true }) && !R9.routedOK(lock, { Ps: 40, scaled: true }));
+  for (const d of [-10, -4, 4, 10]) {
+    assert.strictEqual(R9.xorTruth(lock, { d }), '0110');
+    assert.notStrictEqual(R9.xorTruth({ kick: 0 }, { d }), '0110');
+  }
+  assert.notStrictEqual(R9.xorTruth(lock, { shiftC: 3 }), '0110'); // C's own timing is still tight
+});

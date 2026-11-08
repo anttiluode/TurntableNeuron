@@ -30,7 +30,7 @@ function mutualInfo(channels) {
   return hy - hyx;
 }
 
-function r8a(lengths = [10, 14, 18], threshold = 0.8, slots = 3, rotations = 4, phaseOut = P) {
+function r8aRows(lengths = [10, 14, 18], threshold = 0.8, slots = 3, rotations = 4, phaseOut = P) {
   const rows = [];
   for (let code = 0; code < (1 << (3 * slots)); code++) {
     const y = new Yard({ lengths, threshold, phaseOut });
@@ -40,6 +40,21 @@ function r8a(lengths = [10, 14, 18], threshold = 0.8, slots = 3, rotations = 4, 
     const tau = y.departures.length ? y.departures[0].tau : null;     // timing of the first departure
     rows.push({ N, tau });
   }
+  return rows;
+}
+
+// bits in (count, timing) when the timing is read through a noise kernel [[shift, probability], ...]
+function countTimingBits(rows, kernel) {
+  return mutualInfo(rows.map(x => {
+    const m = new Map();
+    if (x.tau === null) m.set(`${x.N}|-`, 1);
+    else for (const [k, p] of kernel) { const key = `${x.N}|${x.tau + k}`; m.set(key, (m.get(key) || 0) + p); }
+    return m;
+  }));
+}
+
+function r8a(lengths = [10, 14, 18], threshold = 0.8, slots = 3, rotations = 4, phaseOut = P) {
+  const rows = r8aRows(lengths, threshold, slots, rotations, phaseOut);
   const hN = mutualInfo(rows.map(x => new Map([[String(x.N), 1]])));
   const out = { patterns: rows.length, count_only_bits: r(hN), timing_resolution_ticks: 1, phaseOut_ticks: phaseOut, by_jitter: {} };
   for (const sigma of [0, 0.5, 1, 2, 4]) {
@@ -196,4 +211,4 @@ function main() {
 }
 
 if (require.main === module) main();
-module.exports = { r8a, r8b, r8c, truth };
+module.exports = { r8a, r8b, r8c, truth, r8aRows, countTimingBits, mutualInfo, gaussWeights, senderTau, E0 };

@@ -14,6 +14,11 @@
             floor(load / threshold)) carriages leave and load -= n * threshold (subtractive reset).
    Turntable  theta <- theta + 2 pi / period + kick * sum_i I_i sin(phi_i - theta). With kick > 0 a busy
             track pulls the turntable toward itself.
+   Steering (v4, optional) kickWeights[i] scales track i's pull on the turntable (default: all 1). A track with
+            kickWeight 1 and weight 0 is a pure pilot: it steers the turntable but never loads the platform.
+            clockLearn > 0 also lets the pull retune the turntable's own speed: omega <- omega + clockLearn * pull
+            (a second-order phase-locked loop). The kick alone locks with a phase lag that grows with the
+            frequency mismatch (Adler); learning the speed removes that lag.
    Phase    (v3, optional) the platform also keeps a complex record z <- z (1 - somaLeak) + sum_i w_i g_i I_i e^{i theta}:
             every accepted piece of train adds the turntable's direction at that moment. arg z says which
             tracks (and which moments) filled the platform. phaseOut > 0 releases each departing train
@@ -39,6 +44,7 @@
       somaLeak: 0.01, threshold: 1.0, maxCarriages: 4,
       kick: 0, growth: 0, theta0: 0, minLength: 2, maxLength: 48,
       phaseOut: 0, aisMode: 'load',
+      kickWeights: null, clockLearn: 0,
     };
   }
 
@@ -47,7 +53,7 @@
 
     reset() {
       const c = this.cfg;
-      this.t = 0; this.theta = c.theta0; this.load = 0; this.rotation = 0; this.zr = 0; this.zi = 0;
+      this.t = 0; this.theta = c.theta0; this.omega = TAU / c.period; this.load = 0; this.rotation = 0; this.zr = 0; this.zi = 0;
       this.len = c.lengths.map(Number);
       this.cables = this.len.map(n => new Float64Array(Math.round(n)));
       this.stimuli = []; this.departures = [];
@@ -100,7 +106,7 @@
         this.gate[i] = g;
         inflow += c.weights[i] * g * this.I[i];
         zin += c.weights[i] * g * this.I[i];
-        pull += this.I[i] * Math.sin(c.angles[i] - this.theta);
+        pull += (c.kickWeights ? c.kickWeights[i] * this.I[i] : this.I[i]) * Math.sin(c.angles[i] - this.theta);
         this.S[i] += this.I[i] * Math.sin(this.theta - c.angles[i]);
         this.M[i] += this.I[i];
         this.delivered += this.I[i]; this.captured += g * this.I[i];
@@ -109,7 +115,8 @@
       this.zr = this.zr * (1 - c.somaLeak) + zin * Math.cos(this.theta);
       this.zi = this.zi * (1 - c.somaLeak) + zin * Math.sin(this.theta);
       const before = this.theta;
-      this.theta += TAU / c.period + c.kick * pull;
+      if (c.clockLearn) { this.theta += this.omega + c.kick * pull; this.omega += c.clockLearn * pull; }
+      else this.theta += TAU / c.period + c.kick * pull;
 
       // exit: the AIS allow signal comes once per rotation, when the turntable passes the exit
       let departed = 0;

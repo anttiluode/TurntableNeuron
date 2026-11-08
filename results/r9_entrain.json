@@ -1,0 +1,370 @@
+{
+ "R9a_common_delay": {
+  "pilot_track_angles_deg": [
+   -161.4138,
+   108.5862,
+   18.5862
+  ],
+  "pilot_rotations_before_data": 20,
+  "baseline_free": [
+   "100",
+   "010",
+   "001"
+  ],
+  "baseline_locked": [
+   "100",
+   "010",
+   "001"
+  ],
+  "by_kick": {
+   "0": {
+    "delays_routed": "4/32",
+    "delays": [
+     -1,
+     0,
+     1,
+     2
+    ]
+   },
+   "0.1": {
+    "delays_routed": "31/32",
+    "delays": [
+     -15,
+     -14,
+     -13,
+     -12,
+     -11,
+     -10,
+     -9,
+     -8,
+     -7,
+     -6,
+     -5,
+     -4,
+     -3,
+     -2,
+     -1,
+     0,
+     1,
+     2,
+     3,
+     4,
+     5,
+     6,
+     7,
+     8,
+     9,
+     10,
+     11,
+     12,
+     13,
+     14,
+     15
+    ]
+   },
+   "0.2": {
+    "delays_routed": "32/32",
+    "delays": "all of -16..15",
+    "rotations_to_lock_all_delays": 11
+   },
+   "0.4": {
+    "delays_routed": "32/32",
+    "delays": "all of -16..15",
+    "rotations_to_lock_all_delays": 6
+   },
+   "0.8": {
+    "delays_routed": "32/32",
+    "delays": "all of -16..15",
+    "rotations_to_lock_all_delays": 4
+   }
+  }
+ },
+ "R9b_jitter": {
+  "note": "routes kept out of 6 (3 inputs x both signs) or, for random jitter, the fraction of routes kept over 20 trials",
+  "data_only_jitter": {
+   "plus_minus_1": {
+    "free": "6/6",
+    "locked": "5/6"
+   },
+   "plus_minus_2": {
+    "free": "3/6",
+    "locked": "3/6"
+   },
+   "plus_minus_3": {
+    "free": "0/6",
+    "locked": "2/6"
+   },
+   "plus_minus_4": {
+    "free": "0/6",
+    "locked": "0/6"
+   },
+   "plus_minus_6": {
+    "free": "0/6",
+    "locked": "0/6"
+   }
+  },
+  "pilot_jitter": {
+   "plus_minus_1": {
+    "free": 1,
+    "kick_0.2": 1,
+    "kick_0.4": 1,
+    "kick_0.8": 0.8667
+   },
+   "plus_minus_2": {
+    "free": 1,
+    "kick_0.2": 0.9833,
+    "kick_0.4": 0.95,
+    "kick_0.8": 0.65
+   },
+   "plus_minus_3": {
+    "free": 1,
+    "kick_0.2": 0.95,
+    "kick_0.4": 0.8,
+    "kick_0.8": 0.55
+   },
+   "plus_minus_4": {
+    "free": 1,
+    "kick_0.2": 0.9,
+    "kick_0.4": 0.7167,
+    "kick_0.8": 0.5
+   },
+   "plus_minus_6": {
+    "free": 1,
+    "kick_0.2": 0.8333,
+    "kick_0.4": 0.5833,
+    "kick_0.8": 0.3167
+   }
+  },
+  "unknown_delay_plus_pilot_jitter_1": {
+   "plus_minus_1": {
+    "free": 1,
+    "locked": 1
+   },
+   "plus_minus_2": {
+    "free": 0.8,
+    "locked": 1
+   },
+   "plus_minus_4": {
+    "free": 0.35,
+    "locked": 1
+   },
+   "plus_minus_8": {
+    "free": 0.3,
+    "locked": 1
+   },
+   "plus_minus_16": {
+    "free": 0.1,
+    "locked": 1
+   }
+  }
+ },
+ "R9c_period_mismatch": {
+  "periods_tested": "24..42 (receiver: 32)",
+  "listeners": {
+   "codes_in_ticks": {
+    "free": [
+     24,
+     32,
+     40
+    ],
+    "kick": [
+     25,
+     32,
+     33
+    ],
+    "kick_plus_clock_learning": [
+     26,
+     27,
+     28,
+     29,
+     30,
+     31,
+     32,
+     33,
+     34
+    ]
+   },
+   "codes_in_phase": {
+    "free": [
+     29,
+     32,
+     35,
+     38
+    ],
+    "kick": [
+     32,
+     33
+    ],
+    "kick_plus_clock_learning": [
+     30,
+     31,
+     32,
+     33,
+     34,
+     35,
+     36,
+     37,
+     38,
+     39,
+     40,
+     41,
+     42
+    ]
+   }
+  },
+  "xor": {
+   "codes_in_ticks": {
+    "free": [
+     24,
+     32,
+     40
+    ],
+    "kick": [
+     30,
+     31,
+     32,
+     33,
+     34,
+     35,
+     36
+    ],
+    "kick_plus_clock_learning": [
+     31,
+     32,
+     33
+    ]
+   },
+   "codes_in_phase": {
+    "free": [
+     29,
+     32,
+     35
+    ],
+    "kick": [
+     31,
+     32,
+     33,
+     34,
+     40
+    ],
+    "kick_plus_clock_learning": [
+     24,
+     25,
+     26,
+     27,
+     28,
+     29,
+     30,
+     31,
+     32,
+     33,
+     34,
+     35,
+     36,
+     37,
+     38,
+     39,
+     40,
+     41,
+     42
+    ]
+   }
+  },
+  "note": "free-running passes away from 32 are coincidences: the phase slipped by a whole number of windows by the time the data came"
+ },
+ "R9d_timing_information": {
+  "note": "extra bits from timing given the count (R8a: 1.44 with perfect timing); each trial has a delay drawn uniformly from -D..D",
+  "count_only_bits": 1.9193,
+  "by_delay_range": {
+   "plus_minus_0": {
+    "read_on_own_clock": 1.4437,
+    "read_on_locked_clock": 1.4437,
+    "read_on_locked_clock_pilot_jitter_1": 1.2671,
+    "locked_clock_error_ticks": [
+     [
+      0,
+      1
+     ]
+    ]
+   },
+   "plus_minus_1": {
+    "read_on_own_clock": 0.9112,
+    "read_on_locked_clock": 1.4437,
+    "read_on_locked_clock_pilot_jitter_1": 1.2671,
+    "locked_clock_error_ticks": [
+     [
+      0,
+      1
+     ]
+    ]
+   },
+   "plus_minus_2": {
+    "read_on_own_clock": 0.7255,
+    "read_on_locked_clock": 1.4437,
+    "read_on_locked_clock_pilot_jitter_1": 1.2671,
+    "locked_clock_error_ticks": [
+     [
+      0,
+      1
+     ]
+    ]
+   },
+   "plus_minus_4": {
+    "read_on_own_clock": 0.449,
+    "read_on_locked_clock": 1.4437,
+    "read_on_locked_clock_pilot_jitter_1": 1.2671,
+    "locked_clock_error_ticks": [
+     [
+      0,
+      1
+     ]
+    ]
+   },
+   "plus_minus_8": {
+    "read_on_own_clock": 0.2377,
+    "read_on_locked_clock": 1.4437,
+    "read_on_locked_clock_pilot_jitter_1": 1.2671,
+    "locked_clock_error_ticks": [
+     [
+      0,
+      1
+     ]
+    ]
+   }
+  }
+ },
+ "R9e_xor_locked": {
+  "pilot_track_angle_deg": 176.0862,
+  "threshold": 0.75,
+  "ampC": 0.65,
+  "baseline_free": "0110",
+  "baseline_locked": "0110",
+  "common_delay": {
+   "free": {
+    "delays_kept": "3/32",
+    "delays": [
+     -1,
+     0,
+     1
+    ]
+   },
+   "locked": {
+    "delays_kept": "32/32",
+    "delays": "all of -16..15"
+   }
+  },
+  "C_shift_alone": {
+   "free": [
+    -1,
+    0,
+    1
+   ],
+   "locked": [
+    -1,
+    0,
+    1,
+    2
+   ]
+  }
+ }
+}

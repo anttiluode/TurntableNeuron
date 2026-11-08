@@ -46,7 +46,7 @@ a{color:var(--a)}
     <div class="card" id="controls">
       <div class="row"><button id="pause">Pause</button><button id="reset">Reset</button><button id="sendAll">Send all trains</button>
         <button id="repeat">Repeat every rotation</button></div>
-      <div class="row"><span class="note">Presets:</span><button id="pOrder">Order detector</button><button id="pGrow">Learn a timing</button><button id="pLock">Entrain</button><button id="pAddr">Address listeners</button><button id="pXor">XOR</button></div>
+      <div class="row"><span class="note">Presets:</span><button id="pOrder">Order detector</button><button id="pGrow">Learn a timing</button><button id="pLock">Entrain</button><button id="pAddr">Address listeners</button><button id="pXor">XOR</button><button id="pLockL">Locked listeners</button></div>
       <div id="tracks"></div>
       <div class="track">
         <label>Rotation period <span id="vPeriod"></span></label><input id="period" type="range" min="16" max="64" step="1">
@@ -55,9 +55,11 @@ a{color:var(--a)}
         <label>Track growth <span id="vGrowth"></span></label><input id="growth" type="range" min="0" max="1.5" step="0.05">
         <label>Simulation speed <span id="vSpeed"></span></label><input id="speed" type="range" min="1" max="8" step="1">
       </div>
-      <div class="track"><div class="tname" style="color:#f2d38a">AXON · v3</div>
+      <div class="track"><div class="tname" style="color:#f2d38a">AXON · v3 / v4</div>
         <label>Phase release: a departure waits arg(z) of a rotation <span id="vPO"></span></label><input id="po" type="range" min="0" max="32" step="1">
         <label>Axon bias: extra delay on every branch <span id="vBias"></span></label><input id="bias" type="range" min="0" max="31" step="1">
+        <label>Axon jitter: each arrival moves up to ± <span id="vJit"></span></label><input id="jit" type="range" min="0" max="4" step="1">
+        <div class="row"><button id="lockBtn">Listeners lock to the sender's pilot</button><span class="note" id="lockNote"></span></div>
         <div class="row"><span class="note">The exit (AIS) reads:</span><button id="aisLoad" class="on">load</button><button id="aisVec">|z| (vector)</button></div>
         <div class="stats"><div>listener 1 fired <b id="Ln0">0</b></div><div>listener 2 fired <b id="Ln1">0</b></div><div>listener 3 fired <b id="Ln2">0</b></div><div>C weight <b id="cw">1.00</b></div></div>
         <div class="row"><button id="truthBtn">Truth table for A and C</button></div><pre id="truthOut" class="note" style="margin:0;white-space:pre-wrap"></pre>
@@ -70,7 +72,7 @@ a{color:var(--a)}
       </div>
       <div class="track"><div class="note">What one carriage in each slot is worth on the platform, sent at the track's offset (recomputed when lengths, offsets or period change):</div>
         <table id="wmap"></table></div>
-      <div class="track note">Everything before the exit is linear: the platform load is exactly the sum of these slot values. With the exit reading the load, this neuron computes only monotone threshold functions, never XOR. The green arrow in the turntable is z: every accepted piece of train adds the direction the turntable was facing. Read |z| at the exit and A (top) and C (bottom) can cancel; that is how the XOR preset works. Listeners are real yards whose turntables start at 34°, 304° and 214°, tuned to departures delayed by 8, 16 and 24 ticks.</div>
+      <div class="track note">Everything before the exit is linear: the platform load is exactly the sum of these slot values. With the exit reading the load, this neuron computes only monotone threshold functions, never XOR. The green arrow in the turntable is z: every accepted piece of train adds the direction the turntable was facing. Read |z| at the exit and A (top) and C (bottom) can cancel; that is how the XOR preset works. Listeners are real yards whose turntables start at 34°, 304° and 214°, tuned to departures delayed by 8, 16 and 24 ticks. With the lock on (v4), each listener also gets the sender's pilot on a steering-only track, so its turntable follows the sender's rhythm: a common delay no longer moves the address, but jitter on the data itself still does.</div>
     </div>
   </div>
 </div>
@@ -84,16 +86,30 @@ const $ = id => document.getElementById(id);
 const state = {
   cfg: { period: 32, threshold: 1.0, kick: 0, growth: 0, lengths: [12, 12, 12], phaseOut: 0, aisMode: 'load', weights: [1, 1, 1] },
   patterns: [[1, 0, 0, 0], [1, 0, 0, 0], [0, 0, 0, 0]], offsets: [25, 31, 0], repeat: false, paused: false, speed: 2,
-  bias: 0, cycle: null,
+  bias: 0, cycle: null, lock: false, jitter: 0,
 };
 const PSIS = [33.75, 303.75, 213.75].map(d => d * Math.PI / 180), LTHR = 1.2666;
-let y, departing = [], plotData = [], exitMarks = [], lastRot = 0, lis = [], arrivals = [], lisFlash = [0, 0, 0];
+const LPHI = [-161.4138, 108.5862, 18.5862].map(d => d * Math.PI / 180);   // v4 pilot-track angles (experiments/r9_entrain.js)
+let y, departing = [], plotData = [], exitMarks = [], lastRot = 0, lis = [], arrivals = [], pilots = [], lisFlash = [0, 0, 0];
+const jit = () => state.jitter ? Math.round((2 * Math.random() - 1) * state.jitter) : 0;
+
+/* v3 listeners, or (v4) the same listeners with a pilot track: weight 0, so it never loads the platform,
+   kickWeight 1, so it pulls the turntable into step with the sender's exit rhythm. */
+function buildListeners() {
+  lis = PSIS.map((psi, k) => state.lock
+    ? new Yard({ theta0: psi, lengths: [12, 4, 12], threshold: LTHR, weights: [0, 1, 1], angles: [LPHI[k], Math.PI, 3 * Math.PI / 2], kick: 0.4, kickWeights: [1, 0, 0] })
+    : new Yard({ theta0: psi, lengths: [12, 4, 12], threshold: LTHR }));
+  if (y) lis.forEach(L => L.run(y.t));                                // keep listener time in step with the sender
+  arrivals = []; pilots = []; lisFlash = [0, 0, 0];
+  $('lockBtn').classList.toggle('on', state.lock);
+  $('lockNote').textContent = state.lock ? 'pilot: one carriage per sender rotation, kick 0.4' : '';
+}
 
 function build() {
   y = new Yard({ ...state.cfg, lengths: [...state.cfg.lengths], weights: [...state.cfg.weights] });
   y.keepHistory = 1;
-  lis = PSIS.map(psi => new Yard({ theta0: psi, lengths: [12, 4, 12], threshold: LTHR }));
-  departing = []; plotData = []; exitMarks = []; lastRot = 0; arrivals = []; lisFlash = [0, 0, 0];
+  departing = []; plotData = []; exitMarks = []; lastRot = 0;
+  buildListeners();
   weightTable();
 }
 
@@ -171,6 +187,10 @@ function bindGlobal() {
   $('truthBtn').onclick = truthTable;
   $('pAddr').onclick = () => { preset({ lengths: [12, 12, 12], patterns: [[0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]], offsets: [0, 0, 0], threshold: 1.0, kick: 0, growth: 0, repeat: false, phaseOut: 32, aisMode: 'load', weights: [1, 1, 1], cycle: 'addr' }); };
   $('pXor').onclick = () => { preset({ lengths: [12, 12, 12], patterns: [[0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]], offsets: [0, 0, 0], threshold: 0.75, kick: 0, growth: 0, repeat: false, phaseOut: 0, aisMode: 'vector', weights: [1, 1, 0.65], cycle: 'xor' }); truthTable(); };
+  $('jit').value = state.jitter; $('jit').oninput = () => { state.jitter = +$('jit').value; syncLabels(); };
+  $('lockBtn').onclick = () => { state.lock = !state.lock; buildListeners(); };
+  $('pLockL').onclick = () => { $('pAddr').onclick(); state.lock = true; buildListeners();
+    $('lockNote').textContent = 'Now move the axon bias. Unlocked (v3) listeners re-address; locked ones re-lock within a few rotations and every input finds its own listener again. Axon jitter still breaks them: it hits the data trains too.'; };
   $('pLock').onclick = () => preset({ lengths: [12, 12, 12], patterns: [[1, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]], offsets: [0, 0, 0], threshold: 4, kick: 0.4, growth: 0, repeat: false, lockInput: 36 });
 }
 
@@ -180,7 +200,7 @@ function preset(p) {
   state.cfg.threshold = p.threshold; state.cfg.kick = p.kick; state.cfg.growth = p.growth; state.cfg.period = 32;
   state.repeat = p.repeat; lockInput = p.lockInput || 0;
   state.cfg.phaseOut = p.phaseOut || 0; state.cfg.weights = p.weights ? [...p.weights] : [1, 1, 1]; state.cycle = p.cycle || null;
-  state.addrOffsets = null; state.bias = 0; $('po').value = state.cfg.phaseOut; $('bias').value = 0; $('cycleNote').textContent = '';
+  state.addrOffsets = null; state.bias = 0; state.lock = false; state.jitter = 0; $('jit').value = 0; $('po').value = state.cfg.phaseOut; $('bias').value = 0; $('cycleNote').textContent = '';
   $('cw').textContent = state.cfg.weights[2].toFixed(2);
   $('repeat').classList.toggle('on', state.repeat);
   for (const [id, key] of [['period', 'period'], ['thr', 'threshold'], ['kick', 'kick'], ['growth', 'growth']]) $(id).value = state.cfg[key];
@@ -192,6 +212,7 @@ function syncLabels() {
   $('vKick').textContent = (+state.cfg.kick).toFixed(2); $('vGrowth').textContent = (+state.cfg.growth).toFixed(2);
   $('vSpeed').textContent = state.speed + ' ticks/frame';
   $('vPO').textContent = state.cfg.phaseOut ? state.cfg.phaseOut + ' ticks per turn' : 'off'; $('vBias').textContent = state.bias + ' ticks';
+  $('vJit').textContent = state.jitter + ' ticks';
   for (let i = 0; i < 3; i++) { $('vL' + i).textContent = state.cfg.lengths[i]; $('vO' + i).textContent = state.offsets[i]; }
 }
 
@@ -350,18 +371,20 @@ function step() {
   if (!state.paused) for (let k = 0; k < state.speed; k++) {
     if (lockInput && y.t % lockInput === 0) y.carriage(0, 0);
     const out = y.tick();
+    if (y.rotation !== lastRot && state.lock) pilots.push(Math.max(y.t - 1, y.t - 1 + state.bias + jit()));   // the sender's exit moment
     if (y.rotation !== lastRot) { lastRot = y.rotation; onRotation(); plotData.push({ load: y.load, exit: true, out }); }
     else plotData.push({ load: y.load, exit: false, out });
     if (out) {
       const d = y.departures[y.departures.length - 1], tArr = d.release + state.bias;
-      departing.push({ n: out, tRel: d.release, tArr }); arrivals.push(tArr);
+      departing.push({ n: out, tRel: d.release, tArr }); arrivals.push(Math.max(y.t - 1, tArr + jit()));
     }
     lis.forEach((L, k) => {
       for (const a of arrivals) if (a === L.t) L.carriage(1, 0, 1);
+      for (const a of pilots) if (a === L.t) L.carriage(0, 0, 1);
       const before = L.carriagesOut(); L.tick(); if (L.carriagesOut() > before) lisFlash[k] = 20;
       if (lisFlash[k] > 0) lisFlash[k]--;
     });
-    arrivals = arrivals.filter(a => a >= lis[0].t);
+    arrivals = arrivals.filter(a => a >= lis[0].t); pilots = pilots.filter(a => a >= lis[0].t);
     if (plotData.length > 2000) plotData.splice(0, 1000);
   }
   const ls = y.cables.map(c => c.length).join(',');

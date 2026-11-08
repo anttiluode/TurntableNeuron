@@ -144,11 +144,73 @@ XOR appears through cancellation: A alone or C alone gives a big |z|, but both t
 
 What's new here is only the yard framing and the measurements.
 
+## v4: listeners that lock onto the sender (added later on 8 November)
+
+*Antti: "continue with the train." The next step v3 named: let the listeners lock onto the sender's rhythm with v2's kick, so their windows follow it, and measure how much jitter that buys back. v2's and v3's numbers are unchanged: the defaults reproduce [`results/results.json`](results/results.json) and [`results/r8_phase.json`](results/r8_phase.json) byte for byte.*
+
+A listener can only lock onto a rhythm it can hear. In v3 the sender's only output is data trains, and their timing *is* the message, so a listener that locked onto them would erase the address. v4 therefore adds a **pilot**: the sender also sends one carriage per rotation at its exit moment, its rhythm without content. Two optional additions to the core (both off by default):
+
+- **`kickWeights`**: how strongly each track pulls the turntable (default: all 1, which is v2). Each listener gets the pilot on a track with **weight 0 and kickWeight 1**, so the pilot steers the turntable but never puts anything on the platform. The data still arrives on track B, as in v3.
+- **`clockLearn`**: the pull also retunes the turntable's own speed, `ω ← ω + clockLearn·pull`. This is a second-order phase-locked loop.
+
+Each pilot track sits at the angle the free listener faces when the pilot arrives. With no delay the pilot's pull averages to zero, so a locked listener behaves like a v3 listener until the timing moves (the baseline routing is **100 / 010 / 001** either way). Defaults: kick 0.4, 20 pilot rotations before the data, `clockLearn` 0.01 where it is used. All numbers come from `node experiments/r9_entrain.js`; see [`results/r9_entrain.json`](results/r9_entrain.json).
+
+**R9a. A common delay no longer moves the address.** Pilot and data are shifted together by d ticks, for every d from −16 to 15:
+
+| Kick | Delays that still route all 3 inputs correctly | Pilot rotations needed to lock every delay |
+|---|---|---|
+| 0 (v3) | 4 / 32 (−1 to +2) | |
+| 0.1 | 31 / 32 (all but the half-turn point) | more than 20 |
+| 0.2 | **32 / 32** | 11 |
+| 0.4 | **32 / 32** | 6 |
+| 0.8 | **32 / 32** | 4 |
+
+A locked listener reads a train relative to the pilot, not relative to its own clock. So whatever delay sender and listener share drops out. That includes v3's axon bias: **locked listeners are no longer re-addressed by a common bias.** To re-address them, delay the data and not the pilot.
+
+**R9b. What locking does and does not fix.** Routes kept, out of 6 (both signs) or as a fraction over 20 random trials:
+
+| Disturbance | Free (v3) | Locked (kick 0.4) |
+|---|---|---|
+| unknown common delay ±2, pilot jitter ±1 | 0.80 | **1.00** |
+| unknown common delay ±4, pilot jitter ±1 | 0.35 | **1.00** |
+| unknown common delay ±16, pilot jitter ±1 | 0.10 | **1.00** |
+| jitter on the data train only, ±1 / ±2 / ±3 | 6/6 · 3/6 · 0/6 | 5/6 · 3/6 · 2/6 |
+| jitter on the pilot only, ±2 / ±4 / ±6 | 1 · 1 · 1 (it ignores the pilot) | 0.95 · 0.72 · 0.58 |
+
+Pilot jitter shows the classic loop trade-off. A weaker kick averages over more pilots, so it shrugs off pilot jitter better (kick 0.2: 0.98 / 0.90 / 0.83; kick 0.8: 0.65 / 0.50 / 0.32). The price is a slower lock (11 rotations against 4). The honest negative: **locking does not rescue jitter on the data train itself.** One rotation's train is a single sample, and the window it has to hit is still a tick or two wide. Locking removes *shared* timing error, not *private* timing error.
+
+**R9c. A sender with a different period.** The sender's rotation is 24 to 42 ticks; every listener's is 32:
+
+| | Listeners (routing) | XOR yard (truth table) |
+|---|---|---|
+| kick alone, timings in ticks | 32–33 | 30–36 |
+| kick + clock learning, timings in ticks | 26–34 | 31–33 |
+| kick alone, timings as fractions of a rotation | 32–33 | 31–34 |
+| kick + clock learning, timings as fractions of a rotation | **30–42** | **24–42** (the whole sweep) |
+
+(Free-running passes such as 24 and 40 are coincidences: the phase had slipped by whole windows by the time the data came. They are listed in the JSON.)
+
+The kick alone matches the sender's period on average, but it locks with a phase lag that grows with the mismatch (Adler), and the listeners' windows can't absorb that lag. Clock learning removes the lag, because it makes the receiver run at the sender's speed. That also stretches the receiver's rotation, so it only helps when the sender's timings are fractions of *its* rotation. `phaseOut` is a fixed number of ticks, so a v3 sender's τ is not a fraction of its rotation. **Sender and receiver have to agree on what a delay means: ticks, or a share of the rhythm.**
+
+**R9d. Timing information under an unknown delay.** This is R8a's extra bits from timing given the count, where every trial has a delay drawn from −D..D. It is read either on the listener's own clock or on its locked clock:
+
+| Delay range ±D | 0 | 1 | 2 | 4 | 8 |
+|---|---|---|---|---|---|
+| own clock (v3) | 1.44 | 0.91 | 0.73 | 0.45 | 0.24 |
+| locked clock | **1.44** | **1.44** | **1.44** | **1.44** | **1.44** |
+| locked clock, pilot jitter ±1 | 1.27 | 1.27 | 1.27 | 1.27 | 1.27 |
+
+Once locked, the listener's clock error at the moment the data lands is exactly 0 ticks for every constant delay. A lock is translation-invariant. Pilot jitter of ±1 costs 0.18 bits, whatever the delay. The Gaussian readout jitter of R8a is private to each train, so locking would leave its cost unchanged.
+
+**R9e. The XOR yard, locked.** The pilot rides on the XOR yard's unused B track (weight 0, kickWeight 1). The truth table stays **0110** for **32 of 32** common delays, against 3 of 32 (−1, 0, +1) free-running. C's timing *relative to A* still has to be within −1..+2 ticks: the cancellation needs A and C to meet in the same place.
+
+**What v4 adds to the picture.** v3 found that timing codes break at about two ticks. v4 splits that fragility in two. **Shared** timing error is a delay or a drift that sender and receiver can agree on through a pilot, and a locked receiver removes it entirely: routing, XOR and the timing bits come back in full. **Private** timing error is jitter on the one train that carries the message, and locking cannot touch it. That jitter still sets the limit, about ±1 tick for the listeners and for XOR. The pilot also changes what an address is. It is no longer "when, on my clock" but "when, after the sender's beat", which is communication through coherence taken literally (Fries 2005, 2015). Second-order phase-locked loops are standard engineering (Gardner, *Phaselock Techniques*). Phase-locking a receiver to a carrier is how radios decode phase codes.
+
 ## Where it could go
 
 1. **Two yards.** Feed one yard's exit into another's track, and add an inhibitory track that *removes* carriages. That is the smallest network that can compute XOR. Measure what that network needs.
 2. **Entrain plus grow.** Let the turntable lock to a rhythmic world while the tracks grow to its timing. Does the yard tune itself to a rhythm it has never been told about?
-3. ~~Route by phase~~ (done in v3, above). Next: make the routing **robust**. Let listeners entrain to the sender (v2's kick) so their windows track its timing, and measure how much jitter that buys back.
+3. ~~Route by phase~~ (v3) and ~~make it robust to shared delay~~ (v4, above). Next: **private** jitter. One train is one sample. Send each message as a short burst, or across several redundant branches, and let the listener's platform average them. How many carriages does one tick of jitter cost?
 4. **Learn when to send.** Growth taught tracks when to *receive*. Can the axon bias grow so the right neighbour listens, using only the listeners' replies?
 
 ## Run
@@ -156,7 +218,8 @@ What's new here is only the yard framing and the measurements.
 ```bash
 node experiments/run.js                  # ~2 s, writes results/results.json
 node experiments/r8_phase.js             # ~4 s, writes results/r8_phase.json
-node --test tests/turntable.test.js      # 12 tests
+node experiments/r9_entrain.js           # ~25 s, writes results/r9_entrain.json
+node --test tests/turntable.test.js      # 16 tests
 ```
 
 Open `index.html` (or the Pages link) for the lab. **Presets:**
@@ -166,3 +229,4 @@ Open `index.html` (or the Pages link) for the lab. **Presets:**
 - **Entrain:** kick 0.4 with a 36-tick input.
 - **Address listeners** (v3): one carriage on A, B or C every other rotation; each lights its own listener. Then move the axon bias by 8.
 - **XOR** (v3): the exit reads |z|; A alone and C alone leave, A + C cancel. The truth-table button compares load and vector exits at the current threshold.
+- **Locked listeners** (v4): Address listeners with the pilot lock on. Move the axon bias and the routes come back within a few rotations; add axon jitter and routes fail anyway (about 30% missed at ±1, 40% at ±2, because the jitter hits the data trains too). The lock button and the jitter slider work with any preset.
