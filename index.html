@@ -1,146 +1,276 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Turntable Neuron — a computational rail yard</title><style>
-:root{--bg:#07111b;--panel:#0e1b28;--stroke:#294050;--ink:#e9f3fa;--muted:#9ab0c0;--cyan:#6bd7ed;--amber:#f3bf75;--lime:#b5ed9b;--purple:#c7a0ed}*{box-sizing:border-box}body{background:radial-gradient(circle at 30% 0%,#142537 0,var(--bg) 43%);color:var(--ink);font-family:Inter,system-ui,Segoe UI,Arial,sans-serif;margin:0;line-height:1.45}.wrap{max-width:1560px;margin:auto;padding:28px 26px 60px}header{display:flex;align-items:center;justify-content:space-between;gap:30px;margin-bottom:18px}.eyebrow{letter-spacing:.24em;color:var(--cyan);font-size:11px;font-weight:800;text-transform:uppercase}h1{font-size:clamp(32px,4vw,60px);letter-spacing:-.045em;font-weight:700;line-height:1.08;margin:6px 0}header p{color:var(--muted);margin:7px 0 0;max-width:850px}code{color:#d5e0f0}nav{font-size:12px;color:var(--muted)}.pill{border:1px solid #395868;padding:6px 11px;border-radius:100px;white-space:nowrap}.layout{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:16px}.card{background:rgba(13,27,41,.94);border:1px solid var(--stroke);border-radius:14px;overflow:hidden}.sceneTitle{display:flex;justify-content:space-between;align-items:center;padding:12px 18px;font-size:12px;color:var(--muted);border-bottom:1px solid var(--stroke)}.sceneTitle strong{color:var(--ink)}canvas{width:100%;height:auto;display:block}.canvasWrap{padding:0 3px;background:radial-gradient(ellipse at center,#152e40 1%,#081521 70%)}.chartWrap{border-top:1px solid var(--stroke);padding:10px 18px 8px}.cap{font-size:11px;color:var(--muted)}.controls{padding:20px;display:flex;flex-direction:column;gap:16px}h2{font-size:15px;margin:0 0 7px;letter-spacing:.01em}.actions{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px}button{appearance:none;background:#1d3245;border:1px solid #365469;border-radius:8px;color:#dceefb;cursor:pointer;font-weight:700;font-size:12px;min-height:39px;padding:9px 8px;transition:.15s}button:hover{background:#2b5065;transform:translateY(-1px)}button.accent{background:#116077;border-color:#2398ae}button.amber{background:#66482e;border-color:#9a7042}button.ghost{background:transparent;color:var(--muted)}button:focus-visible,input:focus-visible{outline:2px solid var(--cyan);outline-offset:3px}.gridinfo{display:grid;grid-template-columns:1fr 1fr;gap:10px}.number{background:#132738;padding:10px;border:1px solid #314b5f;border-radius:10px}.number .val{font-weight:750;font-size:22px;font-variant-numeric:tabular-nums}.number small{display:block;color:var(--muted);font-size:11px}.group{border-top:1px solid var(--stroke);padding-top:13px}.control{margin:13px 0}.control label{display:flex;justify-content:space-between;color:#d3e1ed;font-size:12px;margin-bottom:7px}.control label b{color:var(--amber);font-variant-numeric:tabular-nums}input[type=range]{width:100%;accent-color:#69c7db;cursor:pointer}.split{display:flex;justify-content:space-between;color:var(--muted);font-size:10px;margin-top:4px}.legend{display:flex;gap:15px;font-size:11px;color:var(--muted);flex-wrap:wrap}.dot{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:6px}.output{white-space:pre-wrap;background:#08141f;border:1px solid #284153;padding:13px;border-radius:10px;color:#b7cad9;font:12px/1.55 Consolas,monospace;min-height:95px;max-height:240px;overflow:auto}.notes{margin-top:16px;padding:22px 26px}.notes h2{font-size:19px}.notes p{margin:12px 0;max-width:1080px;color:#b7cbd9}.notes .cols{display:grid;grid-template-columns:1fr 1fr;gap:12px}.notes .item{background:#122638;border:1px solid #2c4657;border-radius:9px;padding:14px}.notes .item strong{display:block;color:#edf6fc;margin-bottom:6px}.notes .item span{font-size:12px;color:#b4cada}.warning{border-left:3px solid var(--amber);padding-left:14px}footer{color:#70899b;font-size:12px;padding-top:20px}@media(max-width:1030px){.layout{grid-template-columns:1fr}.controls{display:grid;grid-template-columns:1fr 1fr;gap:14px}.controls .group{border-top:0}}@media(max-width:650px){.wrap{padding:18px 12px}header{display:block}nav{margin-top:13px}.controls{display:block}.group{border-top:1px solid var(--stroke)}.notes .cols{grid-template-columns:1fr}}
-</style></head><body><main class="wrap"><header><div><div class="eyebrow">Research sketch 01 / emergent interfaces</div><h1>THE TURNTABLE NEURON</h1><p>Trains enter through dendritic cables, collide as electrical signals at the soma, and an excitable phase turntable releases a new event. Change the track lengths, phase memory and stimulus strength. Watch which simplifications break.</p></div><nav><span class="pill">OFFLINE · ONE HTML FILE</span></nav></header>
-<div class="layout"><div><section class="card"><div class="sceneTitle"><strong>01 / The yard</strong><span id="mode">LIVE · passive cables → soma → phase gate → output</span></div><div class="canvasWrap"><canvas id="yard" width="1160" height="500" aria-label="Animated train-yard neuron with three dendrites, soma, phase gate and output tracks"></canvas></div><div class="sceneTitle"><span>Tracks show voltages along discrete compartments. The train icons are metaphors, not literal particle transport.</span><span id="clock">t = 0</span></div><div class="chartWrap"><div class="legend"><span><i class="dot" style="background:#70d8e9"></i>Soma voltage</span><span><i class="dot" style="background:#efb16e"></i>Phase angle</span><span><i class="dot" style="background:#a6e3aa"></i>Spikes</span></div><canvas id="plot" width="1120" height="218"></canvas></div></section><section class="card notes"><h2>What is the computation?</h2><div class="cols"><div class="item"><strong>1 · Dendrites are analog filters</strong><span>Each track is a compartmental cable obeying a leak-and-diffusion update. Longer tracks spread and attenuate the same input. This is the part inspired by Operaattori.</span></div><div class="item"><strong>2 · Soma combines arrivals</strong><span>Three proximal voltages are integrated. A small explicit coincidence term stands for nonlinear dendritic integration. Two insufficient arrivals can jointly cross the gate.</span></div><div class="item"><strong>3 · Turntable is an excitable phase</strong><span>The Adler-like phase sits at a stable equilibrium. Enough soma input pushes it past a separatrix; a complete 2π slip causes a standardized outgoing event.</span></div><div class="item"><strong>4 · The spike carries an event</strong><span>The AIS event is converted to a separate short pulse at the receiving station. This is the transducer missing in the earlier chain relay tests—and it is deliberately added here, not claimed to emerge naturally. Toggle Relay ON/OFF to separate internal events from externally transmitted events.</span></div></div><p class="warning"><strong>Biology boundary:</strong> Neuronal dendrites do filter and integrate electrical input, and the AIS often initiates spikes. But real axons normally distribute an action potential through branches rather than using a rotating railway switch. Here route selection and phase-write are hypothetical computational mechanisms. No neuronal physiology or new physical law is being claimed.</p></section></div>
-<aside class="card controls"><div><h2>Send trains</h2><div class="actions"><button id="btnA">A</button><button id="btnB">B</button><button id="btnAB" class="accent">A + B</button><button id="btnC">C</button><button id="btnABC">All three</button><button id="btnStagger">Stagger</button></div><p class="cap">Defaults are near threshold: A and B alone stay quiet, but the A+B combination can cause a full turn. Wait for the phase slip to complete.</p></div><div class="gridinfo"><div class="number"><small>Completed phase slips</small><div class="val" id="spikeCount">0</div></div><div class="number"><small>Downstream relays</small><div class="val" id="relayCount">0</div></div><div class="number"><small>Soma potential</small><div class="val" id="somaRead">0.000</div></div><div class="number"><small>Turntable memory</small><div class="val" id="phaseRead">0.00</div></div></div><div class="group"><h2>Change the dendrite cables</h2><div class="control"><label for="lenA">Branch A · cable compartments <b id="labelA">6</b></label><input id="lenA" type="range" min="3" max="18" value="6" step="1"/></div><div class="control"><label for="lenB">Branch B · cable compartments <b id="labelB">9</b></label><input id="lenB" type="range" min="3" max="18" value="9" step="1"/></div><div class="control"><label for="lenC">Branch C · cable compartments <b id="labelC">12</b></label><input id="lenC" type="range" min="3" max="18" value="12" step="1"/><span class="split"><span>Shorter: sharper arrival</span><span>Longer: more filtering</span></span></div></div><div class="group"><h2>Change what the turntable accepts</h2><div class="control"><label for="strength">Train drive <b id="labelStrength">3.5</b></label><input id="strength" type="range" min="2" max="6" step="0.1" value="3.5"/></div><div class="control"><label for="leak">Cable leak <b id="labelLeak">0.045</b></label><input id="leak" type="range" min="0.01" max="0.12" step="0.005" value="0.045"/></div><div class="control"><label for="memory">Slow phase memory <b id="labelMemory">0.0</b></label><input id="memory" type="range" min="-3.14" max="6.28" step="0.05" value="0"/><span class="split"><span>Changes excitability</span><span>Also chooses exit track</span></span></div><div class="control"><label for="plateau">Coincidence nonlinearity <b id="labelPlateau">0.06</b></label><input id="plateau" type="range" min="0" max="0.20" step="0.01" value="0.06"/></div></div><div class="group"><h2>Experiments</h2><div class="actions"><button id="btnPause">Pause</button><button id="btnReset">Reset</button><button id="btnAssay" class="amber">Run assay</button><button id="btnTransmit">Relay ON</button></div><p class="cap">The assay runs matched worlds: different cables, identical inputs, identical dynamics. It checks whether local structure changes remote response and whether the same train fires under different phase memories.</p></div><div class="output" id="assayOut">Choose A+B to send a coordinated arrival, or run the headless assay.</div></aside></div><footer>TURN YARD • Locally executable mechanistic toy • Based on cable theory, an excitable circle phase, and an explicitly engineered event-to-pulse transmitter. Designed to test causal interfaces, not to reproduce an actual neuron.</footer></main>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Turntable Neuron</title>
+<style>
+:root{--bg:#081320;--panel:#0f1d2b;--line:#253a4c;--ink:#e6f0f7;--muted:#93a9ba;--a:#6fd8ea;--b:#f2b46e;--c:#c4a1f2;--soma:#b3eebd;--exit:#f2d38a}
+*{box-sizing:border-box}
+body{margin:0;background:radial-gradient(circle at 30% -10%,#15283b 0,var(--bg) 50%);color:var(--ink);font:15px/1.45 Inter,system-ui,Segoe UI,Arial,sans-serif}
+.wrap{max-width:1500px;margin:auto;padding:22px 20px 50px}
+h1{margin:0;font-size:28px;letter-spacing:.06em}
+.sub{color:var(--muted);max-width:900px;margin:6px 0 16px}
+.grid{display:grid;grid-template-columns:minmax(0,1fr) 360px;gap:16px}
+@media(max-width:1100px){.grid{grid-template-columns:1fr}}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px}
+canvas{width:100%;display:block;border-radius:8px;background:#071019}
+.row{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:6px 0}
+button{background:#18293a;color:var(--ink);border:1px solid #33506a;border-radius:7px;padding:5px 10px;font:inherit;font-size:13px;cursor:pointer}
+button:hover{border-color:#5c86a8}
+button.on{background:#2c4d39;border-color:#78c48d}
+button.slot{width:30px;padding:5px 0}
+label{font-size:13px;color:var(--muted);display:flex;justify-content:space-between;gap:8px}
+input[type=range]{width:100%}
+.track{border-top:1px solid var(--line);padding-top:8px;margin-top:8px}
+.tname{font-weight:700;letter-spacing:.08em}
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:4px 12px;font-size:13px;color:var(--muted)}
+.stats b{color:var(--ink);font-weight:600}
+table{border-collapse:collapse;font-size:12px;margin-top:4px}
+td,th{border:1px solid var(--line);padding:2px 6px;text-align:right}
+th{color:var(--muted);font-weight:500}
+.note{font-size:13px;color:var(--muted)}
+a{color:var(--a)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>THE TURNTABLE NEURON</h1>
+  <p class="sub">Three tracks (dendrites) bring trains to a turning platform. The turntable rotates, facing each track in turn: only what arrives while it faces that track rolls onto the platform (the soma). Once per rotation it faces the exit (the axon). If enough has gathered, carriages leave. Track length decides <i>when</i> each carriage arrives, so geometry decides which carriages count. <a href="sol_v1.html">Sol's v1 lab</a> · <a href="https://github.com/anttiluode/TurntableNeuron">code and results</a></p>
+  <div class="grid">
+    <div>
+      <div class="card"><canvas id="yard" width="1100" height="560"></canvas></div>
+      <div class="card" style="margin-top:12px"><canvas id="plot" width="1100" height="190"></canvas>
+        <div class="note">Green: platform load. Dashed: departure threshold. Gold ticks: the turntable passing the exit (the AIS "allow" moment). Gold bars: carriages leaving.</div></div>
+    </div>
+    <div class="card" id="controls">
+      <div class="row"><button id="pause">Pause</button><button id="reset">Reset</button><button id="sendAll">Send all trains</button>
+        <button id="repeat">Repeat every rotation</button></div>
+      <div class="row"><span class="note">Presets:</span><button id="pOrder">Order detector</button><button id="pGrow">Learn a timing</button><button id="pLock">Entrain</button></div>
+      <div id="tracks"></div>
+      <div class="track">
+        <label>Rotation period <span id="vPeriod"></span></label><input id="period" type="range" min="16" max="64" step="1">
+        <label>Departure threshold <span id="vThr"></span></label><input id="thr" type="range" min="0.2" max="4" step="0.05">
+        <label>Turntable pull toward busy tracks (kick) <span id="vKick"></span></label><input id="kick" type="range" min="0" max="1" step="0.05">
+        <label>Track growth <span id="vGrowth"></span></label><input id="growth" type="range" min="0" max="1.5" step="0.05">
+        <label>Simulation speed <span id="vSpeed"></span></label><input id="speed" type="range" min="1" max="8" step="1">
+      </div>
+      <div class="track stats">
+        <div>tick <b id="sT"></b></div><div>rotation <b id="sRot"></b></div>
+        <div>carriages out <b id="sOut"></b></div><div>captured <b id="sCap"></b></div>
+        <div>platform load <b id="sLoad"></b></div><div>lengths <b id="sLen"></b></div>
+      </div>
+      <div class="track"><div class="note">What one carriage in each slot is worth on the platform, sent at the track's offset (recomputed when lengths, offsets or period change):</div>
+        <table id="wmap"></table></div>
+      <div class="track note">Everything before the exit is linear: the platform load is exactly the sum of these slot values. The exit can only count, so this neuron computes monotone threshold functions of the carriages, never XOR. See the README for the measured results.</div>
+    </div>
+  </div>
+</div>
+<script src="turntable_core.js"></script>
 <script>
-/* Turntable neuron — proposed computational model, NOT a biophysical neuron.
-   Standalone deterministic core (no dependencies), browser + Node compatible. */
-(function(root,factory){const v=factory(); if(typeof module==='object'&&module.exports)module.exports=v;else root.TrainYard=v;})(typeof globalThis!=='undefined'?globalThis:this,function(){
-  const TAU=2*Math.PI;
-  const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
-  function simulateDefaults(){return {lengths:[6,9,12],weights:[1,1,1],axonThreshold:0.0,phaseMemory:0,plateau:0.06,cableLeak:0.045,sourceGain:3.5,axial:1.05,stepsPerFrame:3,writeStrength:0.22,routeGain:1,phaseDrive:0.17,transmit:true};}
-  class World{
-    constructor(conf={}){this.cfg={...simulateDefaults(),...conf};this.reset();}
-    reset(){this.t=0;this.soma=0;this.phiStable=Math.asin(0.06/0.09);this.theta=this.phiStable;this.phaseMemory=this.cfg.phaseMemory;this.cables=this.cfg.lengths.map(n=>new Float64Array(n));this.stimuli=[];this.spikes=[];this.events=[];this.synapticHistory=[];this.somaHistory=[];this.thresholdHistory=[];this.phaseHistory=[];this.readyHistory=[];this.proximal=[0,0,0];this.neighbor=[0,0,0];this.neighborSpikes=0;this.neighborSpikesPerRoute=[0,0,0];this.neighborEvents=[];this.lastCargo='';this.lastSpike=-9999;this.peakSoma=0;this.maxProximal=[0,0,0];this.maxSomaTick=0;this.lastThreshold=null;}
-    setLengths(ls){this.cfg.lengths=ls.map(x=>clamp(Math.round(x),3,22));this.reset();}
-    inject(i,amp=1,delay=0){this.stimuli.push({i,t0:this.t+delay,until:this.t+delay+10,amp,tag:'ABC'[i]});this.events.push({time:this.t+delay,i,amp});}
-    pattern(which){if(which==='A')this.inject(0,1);else if(which==='B')this.inject(1,1);else if(which==='C')this.inject(2,1);else if(which==='AB'){this.inject(0,0.80);this.inject(1,0.80);} else if(which==='ABC'){for(let i=0;i<3;i++)this.inject(i,0.68)}else if(which==='stagger'){this.inject(0,.80,20);this.inject(1,.80,0);}}
-    tick(){
-      const cfg=this.cfg, n=this.cables.length, dt=.22;
-      const source=[0,0,0];for(const p of this.stimuli)if(this.t>=p.t0&&this.t<p.until)source[p.i]+=p.amp*cfg.sourceGain;
-      for(let i=0;i<n;i++){
-        const u=this.cables[i], next=new Float64Array(u.length), L=u.length;
-        for(let j=0;j<L;j++){
-          const left=j===0?this.soma:u[j-1];
-          const right=j===L-1?u[j]:u[j+1];
-          const stimulus=j===L-1?source[i]:0;
-          next[j]=u[j]+dt*(cfg.axial*(left+right-2*u[j])-cfg.cableLeak*u[j]+stimulus);
-        }
-        this.cables[i]=next;this.proximal[i]=next[0];this.maxProximal[i]=Math.max(this.maxProximal[i],next[0]);
-      }
-      // Soma is an interacting electrical compartment; paired arrivals add a synthetic local plateau.
-      const p=this.proximal;const weighted=p.map((v,i)=>Math.max(0,v)*cfg.weights[i]);
-      const coincidence=Math.min(weighted[0],weighted[1])+Math.min(weighted[1],weighted[2])+Math.min(weighted[0],weighted[2]);
-      const cableCurrent=p.reduce((sum, v,i)=>sum+0.25*cfg.weights[i]*(v-this.soma),0);
-      this.soma+=dt*(cableCurrent-0.10*this.soma+cfg.plateau*coincidence);
-      if(this.soma>this.peakSoma){this.peakSoma=this.soma;this.maxSomaTick=this.t;}
-      // Near-SNIC Adler phase, deliberately modeled after an excitable phase variable.
-      // The 'axonThreshold' slider raises the drive requirement; it is not a hard spike comparator.
-      const drive=Math.max(0,this.soma)*cfg.phaseDrive + cfg.routeGain*0.025*Math.sin(this.phaseMemory);
-      const nextTheta=this.theta+(.06-.09*Math.sin(this.theta)+drive-cfg.axonThreshold);
-      this.theta=nextTheta;
-      const winding=Math.floor((this.theta-this.phiStable)/TAU);
-      if(winding>this.spikes.length){
-        // A complete circle is a standardized event; the receiver gets a pulse, not cos(theta).
-        const route=Math.floor(((this.phaseMemory%TAU+TAU)%TAU)/TAU*3)%3;
-        const active=['A','B','C'].filter((tag,i)=>this.stimuli.some(p=>p.i===i && p.t0<=this.t && this.t-p.t0<210)).join('');
-        this.lastCargo=active||'phase';
-        this.spikes.push({t:this.t,route,cargo:this.lastCargo,phaseMemory:this.phaseMemory});
-        this.lastSpike=this.t;
-        this.phaseMemory+=cfg.writeStrength; // firing alters a slow phase state
-        if(cfg.transmit)this.neighborEvents.push({t:this.t+7,amp:1,route});
-      }
-      // Minimal downstream receiver to demonstrate an explicit spike-to-pulse transducer.
-      for(const e of this.neighborEvents)if(e.t===this.t)this.neighbor[e.route]+=e.amp;
-      for(let i=0;i<3;i++){this.neighbor[i]*=.91;if(this.neighbor[i]>.72){this.neighborSpikes++;this.neighborSpikesPerRoute[i]++;this.neighbor[i]=0;}}
-      this.synapticHistory.push([...p]);this.somaHistory.push(this.soma);this.phaseHistory.push(this.theta);this.readyHistory.push(drive);this.thresholdHistory.push(coincidence);
-      const keep=520;for(const a of [this.synapticHistory,this.somaHistory,this.phaseHistory,this.readyHistory,this.thresholdHistory])if(a.length>keep)a.shift();
-      this.t++;
-    }
-    run(n){for(let i=0;i<n;i++)this.tick();return this;}
-  }
-  function assay(){
-    const t=370,scenarios={};
-    for(const x of ['A','B','AB','stagger','ABC']){const w=new World();w.pattern(x);w.run(t);scenarios[x]={peakSoma:+w.peakSoma.toFixed(4),firstSpike:w.spikes.length?w.spikes[0].t:null,spikes:w.spikes.length,neighbor:w.neighborSpikes,proximal:w.maxProximal.map(v=>+v.toFixed(3))};}
-    for(let l of [4,6,9,12,16]){const w=new World({lengths:[l,9,12]});w.pattern('A');w.run(t);scenarios['length '+l]={peakSoma:+w.peakSoma.toFixed(4),firstSpike:w.spikes.length?w.spikes[0].t:null,spikes:w.spikes.length,proximal:w.maxProximal.map(v=>+v.toFixed(3))};}
-    return scenarios;
-  }
-  return{World,assay,simulateDefaults};
-});
+(function () {
+'use strict';
+const { Yard, TAU } = Turntable;
+const COLORS = ['#6fd8ea', '#f2b46e', '#c4a1f2'], NAMES = ['A', 'B', 'C'];
+const $ = id => document.getElementById(id);
+const state = {
+  cfg: { period: 32, threshold: 1.0, kick: 0, growth: 0, lengths: [12, 12, 12] },
+  patterns: [[1, 0, 0, 0], [1, 0, 0, 0], [0, 0, 0, 0]], offsets: [25, 31, 0], repeat: false, paused: false, speed: 2,
+};
+let y, departing = [], plotData = [], exitMarks = [], lastRot = 0;
 
-</script><script>
-(function(){'use strict';
- const C={bg:'#071622',a:'#69dbe8',b:'#edae6e',c:'#bb9bf0',soma:'#afefbe',ais:'#e6cd8c',text:'#c7dfeb'};
- const can=document.getElementById('yard'),ctx=can.getContext('2d'),plot=document.getElementById('plot'),pctx=plot.getContext('2d');
- let world=new TrainYard.World(), paused=false,lastFrame=performance.now(),clockAccum=0;let lastSpikeDisplay=0;const $=id=>document.getElementById(id);
- const points=[[118,95],[118,245],[118,392]], soma=[581,249],turn=[755,249],exitY=[118,249,382];
- const bez=(a,b,c,d,t)=>{let s=1-t;return s*s*s*a+3*s*s*t*b+3*s*t*t*c+t*t*t*d;};
- const track=(i,t)=>{const [x,y]=points[i];return [bez(x,270,420,soma[0]-35,t),bez(y,y+(i-1)*5,249+(i-1)*35,soma[1],t)];};
- const rgba=(hex,a)=>{let z=parseInt(hex.slice(1),16);return `rgba(${z>>16},${(z>>8)&255},${z&255},${a})`};
- function line(c,pts,width=2,color='#7890a0'){c.strokeStyle=color;c.lineWidth=width;c.lineCap='round';c.lineJoin='round';c.beginPath();c.moveTo(...pts[0]);for(let i=1;i<pts.length;i++)c.lineTo(...pts[i]);c.stroke();}
- function text(c,s,x,y,size=13,color=C.text,align='left',weight='500'){c.font=`${weight} ${size}px system-ui,Segoe UI`;c.fillStyle=color;c.textAlign=align;c.fillText(s,x,y)}
- function circ(c,x,y,r,color,fill=true){c.beginPath();c.arc(x,y,r,0,Math.PI*2);fill?(c.fillStyle=color,c.fill()):(c.strokeStyle=color,c.stroke())}
- function draw(){ctx.clearRect(0,0,1160,500);
-  // Grid and station markers
-  ctx.strokeStyle='rgba(125,177,200,.055)';ctx.lineWidth=1;for(let x=0;x<1160;x+=32){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,500);ctx.stroke()}for(let y=0;y<500;y+=32){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(1160,y);ctx.stroke()}
-  text(ctx,'DENDRITIC RAILYARD',30,34,12,'#789cb2');text(ctx,'ELECTRICAL SOMA',525,34,12,'#789cb2');text(ctx,'REGENERATIVE EXIT',743,34,12,'#789cb2');
-  world.cables.forEach((u,i)=>{
-   const col=[C.a,C.b,C.c][i],poly=Array.from({length:65},(_,k)=>track(i,k/64));
-   line(ctx,poly,20,rgba(col,.055));line(ctx,poly,7,rgba(col,.28));line(ctx,poly,2,rgba(col,.85));
-   const n=u.length;for(let j=0;j<n;j++){
-     const t=1-(j+.3)/(n+.2),[x,y]=track(i,t),b=Math.min(1,Math.max(0,u[j])/.65);
-     if(b>.04){circ(ctx,x,y,7+16*b,rgba(col,.14*b));circ(ctx,x,y,3+6*b,rgba(col,.80*b));}
-     else circ(ctx,x,y,2.3,rgba(col,.35));
-   }
-   const fresh=world.stimuli.filter(p=>p.i===i&&world.t>=p.t0&&world.t<p.t0+12);
-   if(fresh.length){const [x,y]=points[i];circ(ctx,x,y,17,rgba(col,.18));circ(ctx,x,y,9,col)}
-   text(ctx,`${'ABC'[i]} / ${u.length} segments`,28,points[i][1]-17,14,col);
-   text(ctx,`arrival ${world.proximal[i].toFixed(3)}`,32,points[i][1]+37,12,'#aac2cf');
-  });
-  circ(ctx,soma[0],soma[1],59,rgba(C.soma,.07));circ(ctx,soma[0],soma[1],43,'#193746');
-  ctx.strokeStyle=rgba(C.soma,.64);ctx.lineWidth=2;ctx.beginPath();ctx.arc(soma[0],soma[1],43,0,Math.PI*2);ctx.stroke();
-  let sb=Math.min(1.3,Math.max(0,world.soma)*3.0);circ(ctx,soma[0],soma[1],25,rgba(C.soma,.10+sb*.35));
-  text(ctx,'SOMA',soma[0],soma[1]-6,17,'#d3f8e1','center','750');text(ctx,world.soma.toFixed(3),soma[0],soma[1]+18,15,C.soma,'center');
-  line(ctx,[[623,249],[715,249]],10,'#263e4d');line(ctx,[[623,249],[715,249]],3,'#a3c1d1');
-  // Excitable turntable: ring angle follows theta; inner needle indicates stored phase.
-  circ(ctx,turn[0],turn[1],76,rgba(C.ais,.06));circ(ctx,turn[0],turn[1],53,'#1a2b37');
-  ctx.strokeStyle=rgba(C.ais,.65);ctx.lineWidth=3;ctx.beginPath();ctx.arc(turn[0],turn[1],53,0,Math.PI*2);ctx.stroke();
-  const angle=world.theta%(Math.PI*2);const [px,py]=[turn[0]+51*Math.cos(angle),turn[1]+51*Math.sin(angle)];circ(ctx,px,py,7,C.ais);
-  ctx.strokeStyle='#e6b865';ctx.lineWidth=4;ctx.beginPath();ctx.moveTo(...turn);ctx.lineTo(turn[0]+35*Math.cos(world.phaseMemory),turn[1]+35*Math.sin(world.phaseMemory));ctx.stroke();
-  circ(ctx,...turn,6,C.ais);text(ctx,'PHASE AIS',turn[0],turn[1]-10,13,'#fae5bc','center','700');text(ctx,`${((angle+6.283)%6.283).toFixed(2)} rad`,turn[0],turn[1]+23,13,'#e9bd80','center');
-  text(ctx,'2π slip → new pulse',turn[0],turn[1]+93,12,'#d6bc8c','center');
-  // Routing rails and receiver targets
-  for(let i=0;i<3;i++){
-   const dest=[1094,exitY[i]],path=[[806,249],[888,249],[952,exitY[i]],dest];line(ctx,path,10,'#253a4a');line(ctx,path,3,'#5d8ca2');
-   const active=world.spikes.filter(s=>world.cfg.transmit&&s.route===i&&world.t-s.t>=0&&world.t-s.t<40).slice(-1)[0];
-   if(active){const f=(world.t-active.t)/40,p0=path[0],p1=path[1],p2=path[2],p3=path[3];const p=f<.5?[p0[0]+(p1[0]-p0[0])*f*2,p0[1]]:[p1[0]+(p3[0]-p1[0])*(f-.5)*2,p1[1]+(p3[1]-p1[1])*(f-.5)*2];circ(ctx,p[0],p[1],21,rgba(C.soma,.14));circ(ctx,p[0],p[1],9,C.soma);}
-   circ(ctx,dest[0],dest[1],22,'#172f3d');ctx.lineWidth=2;circ(ctx,dest[0],dest[1],22,'#6793a9',false);
-   text(ctx,String(i+1),dest[0],dest[1]+5,13,'#b7d6e5','center','750');
-   text(ctx,`${world.neighborSpikesPerRoute[i]} received`,1072,exitY[i]+40,11,'#9dbccc','center');
+function build() {
+  y = new Yard({ ...state.cfg, lengths: [...state.cfg.lengths] });
+  y.keepHistory = 1;
+  departing = []; plotData = []; exitMarks = []; lastRot = 0;
+  weightTable();
+}
+
+function sendAll() { for (let i = 0; i < 3; i++) y.train(i, state.patterns[i], 0); }
+function sendAtOffsets() { for (let i = 0; i < 3; i++) y.train(i, state.patterns[i], state.offsets[i]); }
+
+/* ---------- controls ---------- */
+function trackControls() {
+  const box = $('tracks'); box.innerHTML = '';
+  for (let i = 0; i < 3; i++) {
+    const d = document.createElement('div'); d.className = 'track';
+    d.innerHTML = `<div class="row"><span class="tname" style="color:${COLORS[i]}">TRACK ${NAMES[i]}</span>
+      <span class="note">carriages</span><span id="slots${i}"></span><button id="send${i}">send</button></div>
+      <label>length (compartments) <span id="vL${i}"></span></label><input id="L${i}" type="range" min="2" max="48" step="1">
+      <label>offset for "repeat" (ticks after the exit) <span id="vO${i}"></span></label><input id="O${i}" type="range" min="0" max="63" step="1">`;
+    box.appendChild(d);
+    const slots = d.querySelector(`#slots${i}`);
+    state.patterns[i].forEach((b, k) => {
+      const btn = document.createElement('button'); btn.className = 'slot' + (b ? ' on' : ''); btn.textContent = k + 1;
+      btn.onclick = () => { state.patterns[i][k] ^= 1; btn.classList.toggle('on'); weightTable(); };
+      slots.appendChild(btn);
+    });
+    d.querySelector(`#send${i}`).onclick = () => y.train(i, state.patterns[i], 0);
+    const L = d.querySelector(`#L${i}`); L.value = state.cfg.lengths[i];
+    L.oninput = () => { state.cfg.lengths[i] = +L.value; y.len[i] = +L.value; y.resize(i, +L.value); syncLabels(); weightTable(); };
+    const O = d.querySelector(`#O${i}`); O.value = state.offsets[i];
+    O.oninput = () => { state.offsets[i] = +O.value; syncLabels(); weightTable(); };
   }
-  text(ctx,'Analog cables filter amplitude & time',30,462,12,'#7296a8');text(ctx,'Soma combines',500,462,12,'#a4c7cd');text(ctx,'Slip counts as event',700,462,12,'#cdb98d');
- }
- function drawPlot(){const c=pctx,w=1120,h=218;c.clearRect(0,0,w,h);const padL=39,padR=18,top=19,bot=25;const wid=w-padL-padR,ht=h-top-bot;
-  for(let i=0;i<=4;i++){let y=top+ht*i/4;line(c,[[padL,y],[w-padR,y]],1,'rgba(140,170,190,.12)')}
-  const arr=world.somaHistory,start=Math.max(0,arr.length-430),sel=arr.slice(start);const ymax=Math.max(.40,...sel)*1.12;function drawSeries(data,color,xf){if(data.length<2)return;c.beginPath();data.forEach((v,i)=>{let x=padL+i/Math.max(1,sel.length-1)*wid,y=top+ht*(1-xf(v));i?c.lineTo(x,y):c.moveTo(x,y)});c.strokeStyle=color;c.lineWidth=2.2;c.stroke()}
-  drawSeries(sel,C.a,v=>Math.max(0,v)/ymax);
-  const phases=world.phaseHistory.slice(start),phase01=v=>(((v%(Math.PI*2))+Math.PI*2)%(Math.PI*2))/(Math.PI*2);drawSeries(phases,C.b,phase01);
-  const t0=world.t-sel.length;for(const s of world.spikes){if(s.t<t0||s.t>=world.t)continue;let x=padL+(s.t-t0)/Math.max(1,sel.length)*wid;line(c,[[x,top],[x,top+ht]],1.4,rgba(C.soma,.58));circ(c,x,top+7,3.5,C.soma)}
-  text(c,'V',10,top+12,12,'#8ab9cf');text(c,ymax.toFixed(2),6,top+14,10,'#8baaba');text(c,'0',20,top+ht,10,'#8baaba');text(c,`ticks ${t0}–${world.t}`,w-padR,205,12,'#8baaba','right');text(c,'2π',w-padR-5,30,10,C.b,'right');
- }
- function sync(){const n=world.spikes.length;$('spikeCount').textContent=n;$('relayCount').textContent=world.neighborSpikes;$('somaRead').textContent=world.soma.toFixed(3);$('phaseRead').textContent=world.phaseMemory.toFixed(2);$('clock').textContent=`t = ${world.t}`;if(n>lastSpikeDisplay){const s=world.spikes[n-1];$('assayOut').textContent=`EVENT @ tick ${s.t}\nPhase slip = one complete turn\nInput-source labels (observer metadata): ${s.cargo}\nRouted to outgoing rail ${s.route+1}\nSlow phase memory incremented.\n${world.cfg.transmit?'Receiver gets a fresh, fixed-amplitude pulse.':'Relay is OFF: no receiver pulse.'}`;lastSpikeDisplay=n;}}
- function reset(){world.reset();lastSpikeDisplay=0;$('assayOut').textContent='State reset. A+B usually produces one phase slip after its cable-filtered arrivals.';}
- const send=x=>{world.pattern(x);$('assayOut').textContent=`Dispatched ${x} at tick ${world.t}.\nWatch distal cables first, then soma, then the rotating phase gate.\nSlips may complete well after stimulus ends.`;};
- for(const p of ['A','B','C','AB','ABC','Stagger'])$('btn'+p).addEventListener('click',()=>send(p==='Stagger'?'stagger':p));
- $('btnTransmit').onclick=()=>{world.cfg.transmit=!world.cfg.transmit;$('btnTransmit').textContent=world.cfg.transmit?'Relay ON':'Relay OFF';$('assayOut').textContent=world.cfg.transmit?'Regenerative transmitter enabled: full 2π slips send a fresh output pulse.':'Regenerative transmitter disabled: internal 2π slips remain, but cannot excite the receiver.'};
- $('btnPause').onclick=()=>{paused=!paused;$('btnPause').textContent=paused?'Resume':'Pause'};$('btnReset').onclick=reset;
- for(const [k,i] of [['A',0],['B',1],['C',2]])$('len'+k).oninput=e=>{$('label'+k).textContent=e.target.value;const ls=[+$('lenA').value,+$('lenB').value,+$('lenC').value];world.setLengths(ls);lastSpikeDisplay=0;$('assayOut').textContent='Cable topology rebuilt. State reset; resend the same trains to compare.';};
- const binds=[['strength','sourceGain','labelStrength',1],['leak','cableLeak','labelLeak',3],['memory','phaseMemory','labelMemory',2],['plateau','plateau','labelPlateau',2]];
- for(const [id,attr,lab,n] of binds)$(id).oninput=e=>{let x=+e.target.value;$(lab).textContent=x.toFixed(n);if(attr==='phaseMemory'){world.phaseMemory=x;world.cfg.phaseMemory=x}else world.cfg[attr]=x};
- $('btnAssay').onclick=()=>{const r=TrainYard.assay();const mem=[];for(const phi of [-2,0,1.5]){const w=new TrainYard.World({phaseMemory:phi});w.pattern('AB');w.run(370);mem.push(`${phi.toFixed(1)} rad: ${w.spikes.length} phase slips`)}
- const format=(p)=>`${p.padEnd(10)} peak soma ${r[p].peakSoma.toFixed(3)}, slips ${r[p].spikes}`;
- $('assayOut').textContent='MATCHED-STATE ASSAYS (same 370 ticks)\n'+format('A')+'\n'+format('B')+'\n'+format('AB')+'\n\nCable A length sweep:\n'+['length 4','length 6','length 9','length 12','length 16'].map(k=>`${k.padEnd(10)} peak soma ${r[k].peakSoma.toFixed(3)}, slips ${r[k].spikes}`).join('\n')+'\n\nSame AB train, different phase memory:\n'+mem.join('\n')+'\n\nClaim: arrival geometry and stored phase change whether a full turn occurs.';};
- function frame(t){const dt=Math.min(40,t-lastFrame);lastFrame=t;if(!paused){clockAccum+=dt;let frames=0;while(clockAccum>16&&frames<12){for(let i=0;i<world.cfg.stepsPerFrame;i++)world.tick();clockAccum-=16;frames++}}draw();drawPlot();sync();requestAnimationFrame(frame)}requestAnimationFrame(frame);
+}
+
+function bindGlobal() {
+  const map = [['period', 'period'], ['thr', 'threshold'], ['kick', 'kick'], ['growth', 'growth']];
+  for (const [id, key] of map) {
+    const el = $(id); el.value = state.cfg[key];
+    el.oninput = () => { state.cfg[key] = +el.value; y.cfg[key] = +el.value; syncLabels(); if (key === 'period') weightTable(); };
+  }
+  $('speed').value = state.speed; $('speed').oninput = () => { state.speed = +$('speed').value; syncLabels(); };
+  $('pause').onclick = () => { state.paused = !state.paused; $('pause').textContent = state.paused ? 'Run' : 'Pause'; };
+  $('reset').onclick = () => { build(); };
+  $('sendAll').onclick = sendAll;
+  $('repeat').onclick = () => { state.repeat = !state.repeat; $('repeat').classList.toggle('on', state.repeat); };
+  $('pOrder').onclick = () => preset({ lengths: [12, 12, 12], patterns: [[1, 0, 0, 0], [1, 0, 0, 0], [0, 0, 0, 0]], offsets: [25, 31, 0], threshold: 1.55, kick: 0, growth: 0, repeat: true });
+  $('pGrow').onclick = () => preset({ lengths: [5, 25, 15], patterns: [[1, 0, 0, 0], [1, 0, 0, 0], [1, 0, 0, 0]], offsets: [2, 6, 10], threshold: 2.2, kick: 0, growth: 0.6, repeat: true });
+  $('pLock').onclick = () => preset({ lengths: [12, 12, 12], patterns: [[1, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]], offsets: [0, 0, 0], threshold: 4, kick: 0.4, growth: 0, repeat: false, lockInput: 36 });
+}
+
+let lockInput = 0;
+function preset(p) {
+  state.cfg.lengths = [...p.lengths]; state.patterns = p.patterns.map(a => [...a]); state.offsets = [...p.offsets];
+  state.cfg.threshold = p.threshold; state.cfg.kick = p.kick; state.cfg.growth = p.growth; state.cfg.period = 32;
+  state.repeat = p.repeat; lockInput = p.lockInput || 0;
+  $('repeat').classList.toggle('on', state.repeat);
+  for (const [id, key] of [['period', 'period'], ['thr', 'threshold'], ['kick', 'kick'], ['growth', 'growth']]) $(id).value = state.cfg[key];
+  trackControls(); build(); syncLabels();
+}
+
+function syncLabels() {
+  $('vPeriod').textContent = state.cfg.period + ' ticks'; $('vThr').textContent = (+state.cfg.threshold).toFixed(2);
+  $('vKick').textContent = (+state.cfg.kick).toFixed(2); $('vGrowth').textContent = (+state.cfg.growth).toFixed(2);
+  $('vSpeed').textContent = state.speed + ' ticks/frame';
+  for (let i = 0; i < 3; i++) { $('vL' + i).textContent = state.cfg.lengths[i]; $('vO' + i).textContent = state.offsets[i]; }
+}
+
+function weightTable() {
+  let html = '<tr><th></th>' + [1, 2, 3, 4].map(k => `<th>slot ${k}</th>`).join('') + '</tr>';
+  for (let i = 0; i < 3; i++) {
+    html += `<tr><th style="color:${COLORS[i]}">${NAMES[i]}</th>`;
+    for (let k = 0; k < 4; k++) {
+      const p = new Yard({ period: state.cfg.period, lengths: [...state.cfg.lengths], threshold: Infinity });
+      p.carriage(i, state.offsets[i] + k * p.cfg.slot); p.run(4 * state.cfg.period);
+      const v = p.captured, on = state.patterns[i][k];
+      html += `<td style="background:rgba(179,238,189,${Math.min(0.6, v / 3)});${on ? 'font-weight:700' : 'opacity:.75'}">${v.toFixed(2)}</td>`;
+    }
+    html += '</tr>';
+  }
+  $('wmap').innerHTML = html;
+}
+
+/* ---------- geometry ---------- */
+const CX = 640, CY = 280, RAD = 74;
+function dirXY(phi, r) { return [CX + r * Math.cos(phi), CY - r * Math.sin(phi)]; }
+function trackPath(i, n, scale) {
+  // compartment j = 0 sits at the turntable; j = n-1 is the distal end
+  const phi = y.cfg.angles[i], pts = [];
+  const [rx, ry] = dirXY(phi, RAD + 8);
+  for (let j = 0; j < n; j++) {
+    const d = j * scale;
+    if (i === 1) pts.push([rx - d, ry]);
+    else {
+      const out = Math.min(d, 70), left = Math.max(0, d - 70), s = i === 0 ? -1 : 1;
+      pts.push([rx - left, ry + s * out]);
+    }
+  }
+  return pts;
+}
+
+/* ---------- drawing ---------- */
+const cv = $('yard'), cx = cv.getContext('2d'), pv = $('plot'), px = pv.getContext('2d');
+function rgba(hex, a) { const z = parseInt(hex.slice(1), 16); return `rgba(${z >> 16},${(z >> 8) & 255},${z & 255},${a})`; }
+
+function draw() {
+  cx.clearRect(0, 0, cv.width, cv.height);
+  const maxN = Math.max(...y.cables.map(c => c.length));
+  const scale = Math.min(14, 520 / Math.max(10, maxN));
+  // tracks
+  for (let i = 0; i < 3; i++) {
+    const u = y.cables[i], pts = trackPath(i, u.length, scale);
+    cx.strokeStyle = '#2b4155'; cx.lineWidth = 2; cx.beginPath(); pts.forEach((p, k) => k ? cx.lineTo(...p) : cx.moveTo(...p)); cx.stroke();
+    for (let j = 0; j < u.length; j++) {
+      const [x, yy] = pts[j], v = Math.min(1, u[j] / 0.9);
+      cx.fillStyle = rgba(COLORS[i], 0.12 + 0.88 * v);
+      cx.fillRect(x - 4, yy - 7, 8, 14);
+      if (v > 0.35) { cx.fillStyle = rgba(COLORS[i], 0.25 * v); cx.beginPath(); cx.arc(x, yy, 14 * v, 0, TAU); cx.fill(); }
+    }
+    const end = pts[pts.length - 1];
+    cx.fillStyle = COLORS[i]; cx.font = '700 16px system-ui'; cx.textAlign = 'right'; cx.fillText(NAMES[i], end[0] - 12, end[1] + 5);
+    cx.font = '12px system-ui'; cx.fillStyle = '#93a9ba'; cx.fillText(u.length + ' comp.', end[0] - 12, end[1] + 21);
+    // incoming carriages waiting to enter
+    const pending = y.stimuli.filter(s => s.track === i && s.t0 > y.t && s.t0 - y.t < 40);
+    pending.forEach(s => { const lead = (s.t0 - y.t) * 2.2; cx.fillStyle = rgba(COLORS[i], 0.5); cx.fillRect(end[0] - 26 - lead, end[1] - 6, 14, 12); });
+  }
+  // exit track
+  const [ex, ey] = dirXY(0, RAD + 8);
+  cx.strokeStyle = '#4a4430'; cx.lineWidth = 3; cx.beginPath(); cx.moveTo(ex, ey); cx.lineTo(1090, ey); cx.stroke();
+  cx.fillStyle = '#f2d38a'; cx.font = '700 14px system-ui'; cx.textAlign = 'left'; cx.fillText('EXIT (axon)', ex + 12, ey - 14);
+  departing.forEach(d => {
+    d.x += 3.2 * state.speed;
+    for (let k = 0; k < d.n; k++) { cx.fillStyle = '#f2d38a'; cx.fillRect(d.x - k * 22, ey - 8, 18, 16); }
+  });
+  departing = departing.filter(d => d.x - d.n * 22 < 1100);
+  // turntable
+  cx.fillStyle = '#122233'; cx.strokeStyle = '#3c5a74'; cx.lineWidth = 2; cx.beginPath(); cx.arc(CX, CY, RAD, 0, TAU); cx.fill(); cx.stroke();
+  for (let i = 0; i < 3; i++) {
+    const g = y.gate[i] || 0, [gx, gy] = dirXY(y.cfg.angles[i], RAD + 4);
+    cx.fillStyle = rgba(COLORS[i], 0.15 + 0.85 * g); cx.beginPath(); cx.arc(gx, gy, 7, 0, TAU); cx.fill();
+  }
+  const th = y.theta, [b1x, b1y] = dirXY(th, RAD - 6), [b2x, b2y] = dirXY(th + Math.PI, RAD - 6);
+  cx.strokeStyle = '#d7e6f0'; cx.lineWidth = 9; cx.lineCap = 'round'; cx.beginPath(); cx.moveTo(b2x, b2y); cx.lineTo(b1x, b1y); cx.stroke();
+  cx.fillStyle = '#f2d38a'; cx.beginPath(); cx.arc(b1x, b1y, 8, 0, TAU); cx.fill();
+  // platform load as waiting carriages (drawn top right of the turntable, clear of the tracks)
+  const units = y.load / Math.max(1e-6, y.cfg.threshold), full = Math.floor(units), frac = units - full;
+  const PX = CX + RAD + 40, PY = CY - RAD - 40;
+  cx.font = '12px system-ui'; cx.textAlign = 'left'; cx.fillStyle = '#b3eebd';
+  cx.fillText('platform (soma): carriages waiting', PX, PY - 10);
+  for (let k = 0; k < Math.min(full, 8); k++) { cx.fillStyle = '#b3eebd'; cx.fillRect(PX + k * 21, PY, 18, 14); }
+  if (full < 8) { cx.fillStyle = 'rgba(179,238,189,.35)'; cx.fillRect(PX + full * 21, PY, 18 * frac, 14); }
+  cx.fillStyle = '#93a9ba'; cx.fillText(`load ${y.load.toFixed(2)}  ·  one carriage leaves per ${(+y.cfg.threshold).toFixed(2)}`, PX, PY + 32);
+}
+
+function drawPlot() {
+  px.clearRect(0, 0, pv.width, pv.height);
+  const W = pv.width, H = pv.height, n = 500, data = plotData.slice(-n);
+  const ymax = Math.max(y.cfg.threshold * 1.6, ...data.map(d => d.load)) * 1.1;
+  const X = k => 30 + (k / (n - 1)) * (W - 40), Y = v => H - 18 - (v / ymax) * (H - 30);
+  px.strokeStyle = '#3c5a74'; px.setLineDash([5, 5]); px.beginPath(); px.moveTo(30, Y(y.cfg.threshold)); px.lineTo(W - 10, Y(y.cfg.threshold)); px.stroke(); px.setLineDash([]);
+  data.forEach((d, k) => {
+    if (d.exit) { px.strokeStyle = 'rgba(242,211,138,.35)'; px.beginPath(); px.moveTo(X(k), H - 18); px.lineTo(X(k), H - 28); px.stroke(); }
+    if (d.out) { px.fillStyle = '#f2d38a'; px.fillRect(X(k) - 2, Y(d.out * y.cfg.threshold), 4, Y(0) - Y(d.out * y.cfg.threshold)); }
+  });
+  px.strokeStyle = '#b3eebd'; px.lineWidth = 2; px.beginPath(); data.forEach((d, k) => k ? px.lineTo(X(k), Y(d.load)) : px.moveTo(X(k), Y(d.load))); px.stroke();
+  px.fillStyle = '#93a9ba'; px.font = '12px system-ui'; px.fillText('platform load (last 500 ticks)', 34, 14);
+}
+
+function stats() {
+  $('sT').textContent = y.t; $('sRot').textContent = y.rotation; $('sOut').textContent = y.carriagesOut();
+  $('sCap').textContent = y.delivered > 0 ? (100 * y.captured / y.delivered).toFixed(0) + '%' : '-';
+  $('sLoad').textContent = y.load.toFixed(2); $('sLen').textContent = y.len.map(v => v.toFixed(1)).join(' / ');
+}
+
+let lastLenShown = '';
+function step() {
+  if (!state.paused) for (let k = 0; k < state.speed; k++) {
+    if (lockInput && y.t % lockInput === 0) y.carriage(0, 0);
+    const out = y.tick();
+    if (y.rotation !== lastRot) { lastRot = y.rotation; if (state.repeat) sendAtOffsets(); plotData.push({ load: y.load, exit: true, out }); }
+    else plotData.push({ load: y.load, exit: false, out });
+    if (out) departing.push({ x: CX + RAD + 20, n: out });
+    if (plotData.length > 2000) plotData.splice(0, 1000);
+  }
+  const ls = y.cables.map(c => c.length).join(',');
+  if (ls !== lastLenShown) { lastLenShown = ls; if (state.cfg.growth) { state.cfg.lengths = y.cables.map(c => c.length); for (let i = 0; i < 3; i++) { $('L' + i).value = state.cfg.lengths[i]; } syncLabels(); weightTable(); } }
+  draw(); drawPlot(); stats();
+  requestAnimationFrame(step);
+}
+
+trackControls(); bindGlobal(); build(); syncLabels();
+requestAnimationFrame(step);
 })();
-</script></body></html>
+</script>
+</body>
+</html>
