@@ -46,7 +46,7 @@ a{color:var(--a)}
     <div class="card" id="controls">
       <div class="row"><button id="pause">Pause</button><button id="reset">Reset</button><button id="sendAll">Send all trains</button>
         <button id="repeat">Repeat every rotation</button></div>
-      <div class="row"><span class="note">Presets:</span><button id="pOrder">Order detector</button><button id="pGrow">Learn a timing</button><button id="pLock">Entrain</button></div>
+      <div class="row"><span class="note">Presets:</span><button id="pOrder">Order detector</button><button id="pGrow">Learn a timing</button><button id="pLock">Entrain</button><button id="pAddr">Address listeners</button><button id="pXor">XOR</button></div>
       <div id="tracks"></div>
       <div class="track">
         <label>Rotation period <span id="vPeriod"></span></label><input id="period" type="range" min="16" max="64" step="1">
@@ -55,6 +55,14 @@ a{color:var(--a)}
         <label>Track growth <span id="vGrowth"></span></label><input id="growth" type="range" min="0" max="1.5" step="0.05">
         <label>Simulation speed <span id="vSpeed"></span></label><input id="speed" type="range" min="1" max="8" step="1">
       </div>
+      <div class="track"><div class="tname" style="color:#f2d38a">AXON · v3</div>
+        <label>Phase release: a departure waits arg(z) of a rotation <span id="vPO"></span></label><input id="po" type="range" min="0" max="32" step="1">
+        <label>Axon bias: extra delay on every branch <span id="vBias"></span></label><input id="bias" type="range" min="0" max="31" step="1">
+        <div class="row"><span class="note">The exit (AIS) reads:</span><button id="aisLoad" class="on">load</button><button id="aisVec">|z| (vector)</button></div>
+        <div class="stats"><div>listener 1 fired <b id="Ln0">0</b></div><div>listener 2 fired <b id="Ln1">0</b></div><div>listener 3 fired <b id="Ln2">0</b></div><div>C weight <b id="cw">1.00</b></div></div>
+        <div class="row"><button id="truthBtn">Truth table for A and C</button></div><pre id="truthOut" class="note" style="margin:0;white-space:pre-wrap"></pre>
+        <div class="note" id="cycleNote"></div>
+      </div>
       <div class="track stats">
         <div>tick <b id="sT"></b></div><div>rotation <b id="sRot"></b></div>
         <div>carriages out <b id="sOut"></b></div><div>captured <b id="sCap"></b></div>
@@ -62,7 +70,7 @@ a{color:var(--a)}
       </div>
       <div class="track"><div class="note">What one carriage in each slot is worth on the platform, sent at the track's offset (recomputed when lengths, offsets or period change):</div>
         <table id="wmap"></table></div>
-      <div class="track note">Everything before the exit is linear: the platform load is exactly the sum of these slot values. The exit can only count, so this neuron computes monotone threshold functions of the carriages, never XOR. See the README for the measured results.</div>
+      <div class="track note">Everything before the exit is linear: the platform load is exactly the sum of these slot values. With the exit reading the load, this neuron computes only monotone threshold functions, never XOR. The green arrow in the turntable is z: every accepted piece of train adds the direction the turntable was facing. Read |z| at the exit and A (top) and C (bottom) can cancel; that is how the XOR preset works. Listeners are real yards whose turntables start at 34°, 304° and 214°, tuned to departures delayed by 8, 16 and 24 ticks.</div>
     </div>
   </div>
 </div>
@@ -74,16 +82,45 @@ const { Yard, TAU } = Turntable;
 const COLORS = ['#6fd8ea', '#f2b46e', '#c4a1f2'], NAMES = ['A', 'B', 'C'];
 const $ = id => document.getElementById(id);
 const state = {
-  cfg: { period: 32, threshold: 1.0, kick: 0, growth: 0, lengths: [12, 12, 12] },
+  cfg: { period: 32, threshold: 1.0, kick: 0, growth: 0, lengths: [12, 12, 12], phaseOut: 0, aisMode: 'load', weights: [1, 1, 1] },
   patterns: [[1, 0, 0, 0], [1, 0, 0, 0], [0, 0, 0, 0]], offsets: [25, 31, 0], repeat: false, paused: false, speed: 2,
+  bias: 0, cycle: null,
 };
-let y, departing = [], plotData = [], exitMarks = [], lastRot = 0;
+const PSIS = [33.75, 303.75, 213.75].map(d => d * Math.PI / 180), LTHR = 1.2666;
+let y, departing = [], plotData = [], exitMarks = [], lastRot = 0, lis = [], arrivals = [], lisFlash = [0, 0, 0];
 
 function build() {
-  y = new Yard({ ...state.cfg, lengths: [...state.cfg.lengths] });
+  y = new Yard({ ...state.cfg, lengths: [...state.cfg.lengths], weights: [...state.cfg.weights] });
   y.keepHistory = 1;
-  departing = []; plotData = []; exitMarks = []; lastRot = 0;
+  lis = PSIS.map(psi => new Yard({ theta0: psi, lengths: [12, 4, 12], threshold: LTHR }));
+  departing = []; plotData = []; exitMarks = []; lastRot = 0; arrivals = []; lisFlash = [0, 0, 0];
   weightTable();
+}
+
+function bestOffsetAfterExit(track) {
+  let best = 0, val = -1;
+  for (let o = 0; o < 64; o++) {
+    const p = new Yard({ lengths: [...state.cfg.lengths], threshold: Infinity });
+    p.run(32); p.carriage(track, o); p.run(96);
+    if (p.captured > val + 1e-9) { val = p.captured; best = o; }
+  }
+  return best;
+}
+
+function onRotation() {
+  if (state.repeat) sendAtOffsets();
+  if (state.cycle === 'addr' && (y.rotation - 1) % 2 === 0) {      // every second rotation, so each train leaves cleanly
+    const k = ((y.rotation - 1) / 2) % 3;
+    if (!state.addrOffsets) state.addrOffsets = [0, 1, 2].map(bestOffsetAfterExit);
+    y.carriage(k, state.addrOffsets[k]);
+    $('cycleNote').textContent = `Sending one carriage on track ${NAMES[k]} this rotation. Each input should reach its own listener.`;
+  }
+  if (state.cycle === 'xor' && (y.rotation - 1) % 3 === 0) {
+    const combos = [[1, 0], [0, 1], [1, 1], [0, 0]], k = ((y.rotation - 1) / 3) % 4, [a, c] = combos[k];
+    if (a) y.carriage(0, 26);
+    if (c) y.carriage(2, 42);
+    $('cycleNote').textContent = `Sending A=${a}, C=${c}. Both land on the platform in the same rotation; C's weight is ${state.cfg.weights[2]}.`;
+  }
 }
 
 function sendAll() { for (let i = 0; i < 3; i++) y.train(i, state.patterns[i], 0); }
@@ -126,6 +163,14 @@ function bindGlobal() {
   $('repeat').onclick = () => { state.repeat = !state.repeat; $('repeat').classList.toggle('on', state.repeat); };
   $('pOrder').onclick = () => preset({ lengths: [12, 12, 12], patterns: [[1, 0, 0, 0], [1, 0, 0, 0], [0, 0, 0, 0]], offsets: [25, 31, 0], threshold: 1.55, kick: 0, growth: 0, repeat: true });
   $('pGrow').onclick = () => preset({ lengths: [5, 25, 15], patterns: [[1, 0, 0, 0], [1, 0, 0, 0], [1, 0, 0, 0]], offsets: [2, 6, 10], threshold: 2.2, kick: 0, growth: 0.6, repeat: true });
+  $('po').value = state.cfg.phaseOut; $('po').oninput = () => { state.cfg.phaseOut = +$('po').value; y.cfg.phaseOut = state.cfg.phaseOut; syncLabels(); };
+  $('bias').value = state.bias; $('bias').oninput = () => { state.bias = +$('bias').value; syncLabels(); };
+  const setAis = m => { state.cfg.aisMode = m; y.cfg.aisMode = m; $('aisLoad').classList.toggle('on', m === 'load'); $('aisVec').classList.toggle('on', m === 'vector'); };
+  state.setAis = setAis;
+  $('aisLoad').onclick = () => setAis('load'); $('aisVec').onclick = () => setAis('vector');
+  $('truthBtn').onclick = truthTable;
+  $('pAddr').onclick = () => { preset({ lengths: [12, 12, 12], patterns: [[0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]], offsets: [0, 0, 0], threshold: 1.0, kick: 0, growth: 0, repeat: false, phaseOut: 32, aisMode: 'load', weights: [1, 1, 1], cycle: 'addr' }); };
+  $('pXor').onclick = () => { preset({ lengths: [12, 12, 12], patterns: [[0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]], offsets: [0, 0, 0], threshold: 0.75, kick: 0, growth: 0, repeat: false, phaseOut: 0, aisMode: 'vector', weights: [1, 1, 0.65], cycle: 'xor' }); truthTable(); };
   $('pLock').onclick = () => preset({ lengths: [12, 12, 12], patterns: [[1, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]], offsets: [0, 0, 0], threshold: 4, kick: 0.4, growth: 0, repeat: false, lockInput: 36 });
 }
 
@@ -134,16 +179,37 @@ function preset(p) {
   state.cfg.lengths = [...p.lengths]; state.patterns = p.patterns.map(a => [...a]); state.offsets = [...p.offsets];
   state.cfg.threshold = p.threshold; state.cfg.kick = p.kick; state.cfg.growth = p.growth; state.cfg.period = 32;
   state.repeat = p.repeat; lockInput = p.lockInput || 0;
+  state.cfg.phaseOut = p.phaseOut || 0; state.cfg.weights = p.weights ? [...p.weights] : [1, 1, 1]; state.cycle = p.cycle || null;
+  state.addrOffsets = null; state.bias = 0; $('po').value = state.cfg.phaseOut; $('bias').value = 0; $('cycleNote').textContent = '';
+  $('cw').textContent = state.cfg.weights[2].toFixed(2);
   $('repeat').classList.toggle('on', state.repeat);
   for (const [id, key] of [['period', 'period'], ['thr', 'threshold'], ['kick', 'kick'], ['growth', 'growth']]) $(id).value = state.cfg[key];
-  trackControls(); build(); syncLabels();
+  trackControls(); build(); state.setAis(p.aisMode || 'load'); syncLabels();
 }
 
 function syncLabels() {
   $('vPeriod').textContent = state.cfg.period + ' ticks'; $('vThr').textContent = (+state.cfg.threshold).toFixed(2);
   $('vKick').textContent = (+state.cfg.kick).toFixed(2); $('vGrowth').textContent = (+state.cfg.growth).toFixed(2);
   $('vSpeed').textContent = state.speed + ' ticks/frame';
+  $('vPO').textContent = state.cfg.phaseOut ? state.cfg.phaseOut + ' ticks per turn' : 'off'; $('vBias').textContent = state.bias + ' ticks';
   for (let i = 0; i < 3; i++) { $('vL' + i).textContent = state.cfg.lengths[i]; $('vO' + i).textContent = state.offsets[i]; }
+}
+
+const FN = { '0000': 'never', '0001': 'AND', '0011': 'C', '0101': 'A', '0111': 'OR', '0110': 'XOR', '0100': 'A and not C', '0010': 'C and not A', '1111': 'always' };
+function truthTable() {
+  const lines = [];
+  for (const mode of ['load', 'vector']) {
+    const row = (a, c) => {
+      const p = new Yard({ lengths: [...state.cfg.lengths], weights: [...state.cfg.weights], threshold: state.cfg.threshold, aisMode: mode, maxCarriages: 1 });
+      if (a) p.carriage(0, 25);
+      if (c) p.carriage(2, 41);
+      p.run(39 + 64);
+      return p.carriagesOut() > 0 ? 1 : 0;
+    };
+    const t = [row(0, 0), row(1, 0), row(0, 1), row(1, 1)].join('');
+    lines.push(`${mode === 'load' ? 'exit reads load ' : 'exit reads |z|  '}  AC: 00→${t[0]} 10→${t[1]} 01→${t[2]} 11→${t[3]}   ${FN[t] || t}`);
+  }
+  $('truthOut').textContent = lines.join('\n') + `\n(threshold ${(+state.cfg.threshold).toFixed(2)}, C weight ${state.cfg.weights[2]}, lengths 12 assumed for timing)`;
 }
 
 function weightTable() {
@@ -204,15 +270,34 @@ function draw() {
     const pending = y.stimuli.filter(s => s.track === i && s.t0 > y.t && s.t0 - y.t < 40);
     pending.forEach(s => { const lead = (s.t0 - y.t) * 2.2; cx.fillStyle = rgba(COLORS[i], 0.5); cx.fillRect(end[0] - 26 - lead, end[1] - 6, 14, 12); });
   }
-  // exit track
-  const [ex, ey] = dirXY(0, RAD + 8);
-  cx.strokeStyle = '#4a4430'; cx.lineWidth = 3; cx.beginPath(); cx.moveTo(ex, ey); cx.lineTo(1090, ey); cx.stroke();
+  // axon: exit -> split -> three listener yards
+  const [ex, ey] = dirXY(0, RAD + 8), SX = 820, LX = 975, LY = [CY - 160, CY, CY + 160], LR = 34;
+  cx.strokeStyle = '#4a4430'; cx.lineWidth = 3; cx.beginPath(); cx.moveTo(ex, ey); cx.lineTo(SX, ey);
+  LY.forEach(ly => { cx.moveTo(SX, ey); cx.lineTo(LX - LR - 6, ly); }); cx.stroke();
   cx.fillStyle = '#f2d38a'; cx.font = '700 14px system-ui'; cx.textAlign = 'left'; cx.fillText('EXIT (axon)', ex + 12, ey - 14);
+  if (state.bias) { cx.font = '12px system-ui'; cx.fillStyle = '#93a9ba'; cx.fillText(`bias +${state.bias}`, SX - 20, ey + 22); }
   departing.forEach(d => {
-    d.x += 3.2 * state.speed;
-    for (let k = 0; k < d.n; k++) { cx.fillStyle = '#f2d38a'; cx.fillRect(d.x - k * 22, ey - 8, 18, 16); }
+    if (y.t < d.tRel) {                                          // waiting at the exit for its phase delay
+      cx.fillStyle = 'rgba(242,211,138,.45)'; cx.fillRect(ex + 6, ey - 8, 18, 16);
+      cx.fillStyle = '#93a9ba'; cx.font = '11px system-ui'; cx.fillText(`waits ${d.tRel - y.t}`, ex + 4, ey + 24);
+      return;
+    }
+    const f = Math.min(1, (y.t - d.tRel) / Math.max(4, d.tArr - d.tRel));
+    const pts = f < 0.5 ? [[ex + (SX - ex) * f * 2, ey]] : LY.map(ly => [SX + (LX - LR - 6 - SX) * (f - 0.5) * 2, ey + (ly - ey) * (f - 0.5) * 2]);
+    pts.forEach(([x, yy]) => { cx.fillStyle = '#f2d38a'; cx.fillRect(x - 9, yy - 8, 18, 16); });
   });
-  departing = departing.filter(d => d.x - d.n * 22 < 1100);
+  departing = departing.filter(d => y.t < Math.max(d.tArr, d.tRel + 4));
+  lis.forEach((L, k) => {
+    const ly = LY[k], g = L.gate[1] || 0, flash = lisFlash[k];
+    cx.fillStyle = flash > 0 ? 'rgba(242,211,138,.35)' : '#122233'; cx.strokeStyle = '#3c5a74'; cx.lineWidth = 2;
+    cx.beginPath(); cx.arc(LX, ly, LR, 0, TAU); cx.fill(); cx.stroke();
+    cx.fillStyle = `rgba(242,180,110,${0.15 + 0.85 * g})`; cx.beginPath(); cx.arc(LX - LR - 2, ly, 5, 0, TAU); cx.fill();
+    const a1 = [LX + (LR - 4) * Math.cos(L.theta), ly - (LR - 4) * Math.sin(L.theta)], a2 = [LX - (LR - 4) * Math.cos(L.theta), ly + (LR - 4) * Math.sin(L.theta)];
+    cx.strokeStyle = '#d7e6f0'; cx.lineWidth = 5; cx.beginPath(); cx.moveTo(...a2); cx.lineTo(...a1); cx.stroke();
+    cx.fillStyle = '#f2d38a'; cx.beginPath(); cx.arc(...a1, 4, 0, TAU); cx.fill();
+    cx.fillStyle = '#c7d8e4'; cx.font = '12px system-ui'; cx.textAlign = 'left';
+    cx.fillText(`listener ${k + 1}: ${L.carriagesOut()}`, LX + LR + 8, ly + 4);
+  });
   // turntable
   cx.fillStyle = '#122233'; cx.strokeStyle = '#3c5a74'; cx.lineWidth = 2; cx.beginPath(); cx.arc(CX, CY, RAD, 0, TAU); cx.fill(); cx.stroke();
   for (let i = 0; i < 3; i++) {
@@ -222,9 +307,16 @@ function draw() {
   const th = y.theta, [b1x, b1y] = dirXY(th, RAD - 6), [b2x, b2y] = dirXY(th + Math.PI, RAD - 6);
   cx.strokeStyle = '#d7e6f0'; cx.lineWidth = 9; cx.lineCap = 'round'; cx.beginPath(); cx.moveTo(b2x, b2y); cx.lineTo(b1x, b1y); cx.stroke();
   cx.fillStyle = '#f2d38a'; cx.beginPath(); cx.arc(b1x, b1y, 8, 0, TAU); cx.fill();
+  // z: the direction record of what is on the platform
+  const zm = Math.hypot(y.zr, y.zi), zl = Math.min(RAD - 12, (RAD - 12) * zm / Math.max(1e-6, 2 * y.cfg.threshold));
+  if (zl > 2) {
+    const ang = Math.atan2(y.zi, y.zr), zx = CX + zl * Math.cos(ang), zy = CY - zl * Math.sin(ang);
+    cx.strokeStyle = '#b3eebd'; cx.lineWidth = 3; cx.beginPath(); cx.moveTo(CX, CY); cx.lineTo(zx, zy); cx.stroke();
+    cx.fillStyle = '#b3eebd'; cx.beginPath(); cx.arc(zx, zy, 4, 0, TAU); cx.fill();
+  }
   // platform load as waiting carriages (drawn top right of the turntable, clear of the tracks)
   const units = y.load / Math.max(1e-6, y.cfg.threshold), full = Math.floor(units), frac = units - full;
-  const PX = CX + RAD + 40, PY = CY - RAD - 40;
+  const PX = 250, PY = 40;
   cx.font = '12px system-ui'; cx.textAlign = 'left'; cx.fillStyle = '#b3eebd';
   cx.fillText('platform (soma): carriages waiting', PX, PY - 10);
   for (let k = 0; k < Math.min(full, 8); k++) { cx.fillStyle = '#b3eebd'; cx.fillRect(PX + k * 21, PY, 18, 14); }
@@ -249,7 +341,8 @@ function drawPlot() {
 function stats() {
   $('sT').textContent = y.t; $('sRot').textContent = y.rotation; $('sOut').textContent = y.carriagesOut();
   $('sCap').textContent = y.delivered > 0 ? (100 * y.captured / y.delivered).toFixed(0) + '%' : '-';
-  $('sLoad').textContent = y.load.toFixed(2); $('sLen').textContent = y.len.map(v => v.toFixed(1)).join(' / ');
+  $('sLoad').textContent = y.load.toFixed(2) + (Math.hypot(y.zr, y.zi) > 1e-3 ? `  |z| ${Math.hypot(y.zr, y.zi).toFixed(2)}` : '');
+  lis.forEach((L, k) => { $('Ln' + k).textContent = L.carriagesOut(); }); $('sLen').textContent = y.len.map(v => v.toFixed(1)).join(' / ');
 }
 
 let lastLenShown = '';
@@ -257,9 +350,18 @@ function step() {
   if (!state.paused) for (let k = 0; k < state.speed; k++) {
     if (lockInput && y.t % lockInput === 0) y.carriage(0, 0);
     const out = y.tick();
-    if (y.rotation !== lastRot) { lastRot = y.rotation; if (state.repeat) sendAtOffsets(); plotData.push({ load: y.load, exit: true, out }); }
+    if (y.rotation !== lastRot) { lastRot = y.rotation; onRotation(); plotData.push({ load: y.load, exit: true, out }); }
     else plotData.push({ load: y.load, exit: false, out });
-    if (out) departing.push({ x: CX + RAD + 20, n: out });
+    if (out) {
+      const d = y.departures[y.departures.length - 1], tArr = d.release + state.bias;
+      departing.push({ n: out, tRel: d.release, tArr }); arrivals.push(tArr);
+    }
+    lis.forEach((L, k) => {
+      for (const a of arrivals) if (a === L.t) L.carriage(1, 0, 1);
+      const before = L.carriagesOut(); L.tick(); if (L.carriagesOut() > before) lisFlash[k] = 20;
+      if (lisFlash[k] > 0) lisFlash[k]--;
+    });
+    arrivals = arrivals.filter(a => a >= lis[0].t);
     if (plotData.length > 2000) plotData.splice(0, 1000);
   }
   const ls = y.cables.map(c => c.length).join(',');

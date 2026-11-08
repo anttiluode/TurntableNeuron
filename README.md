@@ -91,17 +91,72 @@ Tracks turn *when* into *whether*: a carriage counts only if it arrives while th
 - **Growth reads the shared turntable clock.** That is local in space, but every track uses the same global rhythm.
 - **Carriage content:** Sol's open question, whether a *relationship* can pass the standardized exit, gets a partial answer here. A conjunction and an order can (as a count); XOR cannot; and only about 2 bits per 512-pattern ensemble pass the exit.
 
+## v3: trains with phase in the axon (added later on 8 November)
+
+*Antti asked: what if the trains, once in the axon, have a phase bias? Sol designed the test (R8); Claude built it. v2's numbers above are unchanged: the defaults reproduce [`results/results.json`](results/results.json) byte for byte.*
+
+Sol's catch: in v2 every departure leaves when the turntable faces the exit, so "departure phase" is always the same and carries nothing. A phase that means anything has to be *earned* from the inputs. Three optional additions (all off by default):
+
+- **A complex platform.** `z ← z·(1 − leak) + Σ gᵢIᵢ·e^{iθ}`. Every accepted piece of train also adds the direction the turntable was facing when it rolled on. Because tracks are faced at different angles (A 90°, B 180°, C 270°), arg z records *who* filled the platform; the load only records how much.
+- **Phase release.** A departing train waits τ = round(phaseOut · arg z / 2π) ticks before it leaves the exit.
+- **Vector exit.** `aisMode: 'vector'` thresholds |z| instead of the load, so trains from opposite directions can cancel.
+
+Downstream **listeners** are real yards (the same core) whose turntables start at different phases. All numbers come from `node experiments/r8_phase.js`; see [`results/r8_phase.json`](results/r8_phase.json).
+
+**R8a. Timing carries information beyond the count.** This uses the same 512 patterns as R5, with the first departure's delay τ at 1-tick resolution and Gaussian jitter σ:
+
+| Jitter σ (ticks) | Count alone | Count + timing | Extra bits from timing |
+|---|---|---|---|
+| 0 | 1.92 | 3.36 | **1.44** |
+| 0.5 | | 3.00 | 1.08 |
+| 1 | | 2.66 | 0.74 |
+| 2 | | 2.37 | 0.45 |
+| 4 | | 2.11 | 0.19 |
+
+Without phase release the extra is exactly 0, because every train leaves at the exit moment.
+
+**R8b. The same yard addresses different listeners by timing.** One carriage on A, B or C produces a departure with arg z = 90°, 180° or 270°, so τ = 8, 16 or 24 ticks. Three listener yards are tuned to those arrival phases. Each cell shows which of listeners 1, 2, 3 fire:
+
+| | A | B | C |
+|---|---|---|---|
+| with phase release | **100** | **010** | **001** |
+| without phase release | 000 | 000 | 000 |
+| phase release + axon bias 8 ticks | 010 | 001 | 000 |
+| phase release + axon bias 16 ticks | 001 | 000 | 100 |
+
+The content of the train picks the listener. Adding a common axon delay re-addresses every input to the next listener, without moving a wire: Sol's communication-through-coherence point. But it is **fragile**: ±1 tick of jitter keeps all 6 routes, ±2 keeps 3, and ±3 keeps none. The listeners' windows are narrow.
+
+**R8c. A vector platform breaks the monotone limit.** A (track at 90°) and C (track at 270°) land on the platform in the same rotation. Scanning the threshold and C's amplitude:
+
+| Exit reads | Boolean functions of (A, C) it can produce |
+|---|---|
+| load (v2) | never, A, C, AND, OR (all monotone) |
+| \|z\| (vector) | never, A-and-not-C, C-and-not-A, **XOR**, OR |
+
+XOR appears through cancellation: A alone or C alone gives a big |z|, but both together point in opposite directions and cancel. In the 512-pattern ensemble, vector mode breaks monotonicity in 32 of 2,304 pairs (v2: 0). Like the routing, it is **fragile**. XOR needs C's weight balanced against A's, in 297 of 1,380 (threshold, amplitude) settings, and C's timing within ±1 tick.
+
+**What v3 adds to the picture.** The count says *how much*; the phase says *from where*. The axon can carry the second as *when*, and a listener's rhythm decides whether *when* means anything to it. All of this rides on precise timing: one tick of jitter costs a third of the extra bits, and two ticks break the routing.
+
+**Prior art.**
+- Phase-of-firing codes and communication through coherence: Fries 2005 and 2015.
+- XOR with a single complex-valued neuron: Nitta, *Neural Networks* 2003; Aizenberg's multi-valued neurons.
+- The vector platform is a phasor sum, the same mathematics as a complex-valued unit.
+
+What's new here is only the yard framing and the measurements.
+
 ## Where it could go
 
 1. **Two yards.** Feed one yard's exit into another's track, and add an inhibitory track that *removes* carriages. That is the smallest network that can compute XOR. Measure what that network needs.
 2. **Entrain plus grow.** Let the turntable lock to a rhythmic world while the tracks grow to its timing. Does the yard tune itself to a rhythm it has never been told about?
-3. **Route by phase.** This is Sol's v1 idea. If the exit had several rails and the departure phase chose one, how many more bits get out than with a count alone?
+3. ~~Route by phase~~ (done in v3, above). Next: make the routing **robust**. Let listeners entrain to the sender (v2's kick) so their windows track its timing, and measure how much jitter that buys back.
+4. **Learn when to send.** Growth taught tracks when to *receive*. Can the axon bias grow so the right neighbour listens, using only the listeners' replies?
 
 ## Run
 
 ```bash
 node experiments/run.js                  # ~2 s, writes results/results.json
-node --test tests/turntable.test.js      # 8 tests
+node experiments/r8_phase.js             # ~4 s, writes results/r8_phase.json
+node --test tests/turntable.test.js      # 12 tests
 ```
 
 Open `index.html` (or the Pages link) for the lab. **Presets:**
@@ -109,3 +164,5 @@ Open `index.html` (or the Pages link) for the lab. **Presets:**
 - **Order detector:** A then B; swap the two offsets and departures stop.
 - **Learn a timing:** growth on; watch the lengths move.
 - **Entrain:** kick 0.4 with a 36-tick input.
+- **Address listeners** (v3): one carriage on A, B or C every other rotation; each lights its own listener. Then move the axon bias by 8.
+- **XOR** (v3): the exit reads |z|; A alone and C alone leave, A + C cancel. The truth-table button compares load and vector exits at the current threshold.

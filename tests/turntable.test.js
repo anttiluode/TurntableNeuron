@@ -49,3 +49,31 @@ test('growth raises capture and the response to the trained timing', () => {
   assert.ok(g.capture_last > g.capture_first);
   assert.ok(g.after.target > g.before.target);
 });
+
+/* ---- v3 / R8: phase-biased axon ---- */
+const R8 = require('../experiments/r8_phase.js');
+
+test('v3 defaults leave v2 behaviour untouched (no phase release, load AIS)', () => {
+  const y = new Yard({ threshold: 0.8 }); y.train(0, [1, 1, 0], 0); y.run(200);
+  assert.ok(y.departures.every(d => d.tau === 0 && d.release === d.t));
+});
+
+test('outgoing timing carries information beyond the count', () => {
+  const a = R8.r8a();
+  assert.ok(a.by_jitter.sigma_0.extra_bits_from_timing_given_count > 1.0);
+  assert.ok(a.by_jitter.sigma_4.extra_bits_from_timing_given_count < a.by_jitter.sigma_1.extra_bits_from_timing_given_count);
+});
+
+test('phase release routes each input to its own listener; bias re-addresses', () => {
+  const b = R8.r8b();
+  assert.deepStrictEqual(b.with_phase_release, ['100', '010', '001']);
+  assert.deepStrictEqual(b.without_phase_release, ['000', '000', '000']);
+  assert.strictEqual(b.bias_sweep[8], '010 001 000');
+});
+
+test('a vector platform computes XOR; the load platform cannot', () => {
+  const c = R8.r8c();
+  assert.ok(c.functions_reachable.vector.includes('0110'));
+  assert.ok(!c.functions_reachable.load.includes('0110'));
+  assert.ok(c.vector_mode_monotonicity.adding_a_carriage_reduced_output > 0);
+});

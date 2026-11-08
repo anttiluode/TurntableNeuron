@@ -14,6 +14,12 @@
             floor(load / threshold)) carriages leave and load -= n * threshold (subtractive reset).
    Turntable  theta <- theta + 2 pi / period + kick * sum_i I_i sin(phi_i - theta). With kick > 0 a busy
             track pulls the turntable toward itself.
+   Phase    (v3, optional) the platform also keeps a complex record z <- z (1 - somaLeak) + sum_i w_i g_i I_i e^{i theta}:
+            every accepted piece of train adds the turntable's direction at that moment. arg z says which
+            tracks (and which moments) filled the platform. phaseOut > 0 releases each departing train
+            tau = round(phaseOut * arg(z) / 2pi) ticks after the exit moment (arg taken in [0, 2pi)).
+            aisMode 'vector' thresholds |z| instead of the load, so opposite directions can cancel.
+            A departure removes the departed share of both load and z. Defaults leave v2 unchanged.
    Growth   per track, over each rotation: e_i = sum I_i sin(theta - phi_i) / sum I_i (> 0: arrived after
             the turntable passed, so too late). length_i -= growth * e_i. Compartments = round(length_i).
 */
@@ -32,6 +38,7 @@
       carriageAmp: 1, carriageTicks: 3, slot: 6,
       somaLeak: 0.01, threshold: 1.0, maxCarriages: 4,
       kick: 0, growth: 0, theta0: 0, minLength: 2, maxLength: 48,
+      phaseOut: 0, aisMode: 'load',
     };
   }
 
@@ -40,7 +47,7 @@
 
     reset() {
       const c = this.cfg;
-      this.t = 0; this.theta = c.theta0; this.load = 0; this.rotation = 0;
+      this.t = 0; this.theta = c.theta0; this.load = 0; this.rotation = 0; this.zr = 0; this.zi = 0;
       this.len = c.lengths.map(Number);
       this.cables = this.len.map(n => new Float64Array(Math.round(n)));
       this.stimuli = []; this.departures = [];
@@ -87,17 +94,20 @@
       }
 
       // turntable gate, platform, turntable motion
-      let inflow = 0, pull = 0;
+      let inflow = 0, pull = 0, zin = 0;
       for (let i = 0; i < R; i++) {
         const g = Math.exp(c.kappa * (Math.cos(this.theta - c.angles[i]) - 1));
         this.gate[i] = g;
         inflow += c.weights[i] * g * this.I[i];
+        zin += c.weights[i] * g * this.I[i];
         pull += this.I[i] * Math.sin(c.angles[i] - this.theta);
         this.S[i] += this.I[i] * Math.sin(this.theta - c.angles[i]);
         this.M[i] += this.I[i];
         this.delivered += this.I[i]; this.captured += g * this.I[i];
       }
       this.load = this.load * (1 - c.somaLeak) + inflow;
+      this.zr = this.zr * (1 - c.somaLeak) + zin * Math.cos(this.theta);
+      this.zi = this.zi * (1 - c.somaLeak) + zin * Math.sin(this.theta);
       const before = this.theta;
       this.theta += TAU / c.period + c.kick * pull;
 
@@ -105,10 +115,21 @@
       let departed = 0;
       if (Math.floor((this.theta - c.exitAngle) / TAU) > Math.floor((before - c.exitAngle) / TAU)) {
         this.rotation++;
-        if (this.load >= c.threshold) {
-          departed = Math.min(c.maxCarriages, Math.floor(this.load / c.threshold));
-          this.load -= departed * c.threshold;
-          this.departures.push({ t: this.t, n: departed, rotation: this.rotation });
+        const mag = Math.hypot(this.zr, this.zi);
+        const level = c.aisMode === 'vector' ? mag : this.load;
+        if (level >= c.threshold) {
+          departed = Math.min(c.maxCarriages, Math.floor(level / c.threshold));
+          const phase = ((Math.atan2(this.zi, this.zr) % TAU) + TAU) % TAU;
+          const tau = c.phaseOut ? Math.round(c.phaseOut * phase / TAU) : 0;
+          if (c.aisMode === 'vector') {
+            const keep = 1 - departed * c.threshold / mag;
+            this.zr *= keep; this.zi *= keep; this.load *= keep;
+          } else {
+            const keep = this.load > 0 ? 1 - departed * c.threshold / this.load : 0;
+            this.load -= departed * c.threshold;
+            this.zr *= keep; this.zi *= keep;
+          }
+          this.departures.push({ t: this.t, n: departed, rotation: this.rotation, phase, tau, release: this.t + tau });
         }
         if (c.growth) this.grow();
       }
