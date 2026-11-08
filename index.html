@@ -59,7 +59,7 @@ a{color:var(--a)}
         <label>Phase release: a departure waits arg(z) of a rotation <span id="vPO"></span></label><input id="po" type="range" min="0" max="32" step="1">
         <label>Axon bias: extra delay on every branch <span id="vBias"></span></label><input id="bias" type="range" min="0" max="31" step="1">
         <label>Axon jitter: each arrival moves up to ± <span id="vJit"></span></label><input id="jit" type="range" min="0" max="4" step="1">
-        <div class="row"><button id="lockBtn">Listeners lock to the sender's pilot</button><span class="note" id="lockNote"></span></div>
+        <div class="row"><button id="lockBtn">Listeners lock to the sender's pilot</button><button id="wideBtn">Wide listener windows (±45°)</button></div><div class="note" id="lockNote"></div>
         <div class="row"><span class="note">The exit (AIS) reads:</span><button id="aisLoad" class="on">load</button><button id="aisVec">|z| (vector)</button></div>
         <div class="stats"><div>listener 1 fired <b id="Ln0">0</b></div><div>listener 2 fired <b id="Ln1">0</b></div><div>listener 3 fired <b id="Ln2">0</b></div><div>C weight <b id="cw">1.00</b></div></div>
         <div class="row"><button id="truthBtn">Truth table for A and C</button></div><pre id="truthOut" class="note" style="margin:0;white-space:pre-wrap"></pre>
@@ -72,7 +72,7 @@ a{color:var(--a)}
       </div>
       <div class="track"><div class="note">What one carriage in each slot is worth on the platform, sent at the track's offset (recomputed when lengths, offsets or period change):</div>
         <table id="wmap"></table></div>
-      <div class="track note">Everything before the exit is linear: the platform load is exactly the sum of these slot values. With the exit reading the load, this neuron computes only monotone threshold functions, never XOR. The green arrow in the turntable is z: every accepted piece of train adds the direction the turntable was facing. Read |z| at the exit and A (top) and C (bottom) can cancel; that is how the XOR preset works. Listeners are real yards whose turntables start at 34°, 304° and 214°, tuned to departures delayed by 8, 16 and 24 ticks. With the lock on (v4), each listener also gets the sender's pilot on a steering-only track, so its turntable follows the sender's rhythm: a common delay no longer moves the address, but jitter on the data itself still does.</div>
+      <div class="track note">Everything before the exit is linear: the platform load is exactly the sum of these slot values. With the exit reading the load, this neuron computes only monotone threshold functions, never XOR. The green arrow in the turntable is z: every accepted piece of train adds the direction the turntable was facing. Read |z| at the exit and A (top) and C (bottom) can cancel; that is how the XOR preset works. Listeners are real yards whose turntables start at 34°, 304° and 214°, tuned to departures delayed by 8, 16 and 24 ticks. With the lock on (v4), each listener also gets the sender's pilot on a steering-only track, so its turntable follows the sender's rhythm: a common delay no longer moves the address, but jitter on the data itself still does. Wide windows (v5) are 90° instead of 45°: the addresses are 90° apart, so a window that wide survives ±3 to 4 ticks of jitter.</div>
     </div>
   </div>
 </div>
@@ -86,7 +86,7 @@ const $ = id => document.getElementById(id);
 const state = {
   cfg: { period: 32, threshold: 1.0, kick: 0, growth: 0, lengths: [12, 12, 12], phaseOut: 0, aisMode: 'load', weights: [1, 1, 1] },
   patterns: [[1, 0, 0, 0], [1, 0, 0, 0], [0, 0, 0, 0]], offsets: [25, 31, 0], repeat: false, paused: false, speed: 2,
-  bias: 0, cycle: null, lock: false, jitter: 0,
+  bias: 0, cycle: null, lock: false, jitter: 0, wide: false,
 };
 const PSIS = [33.75, 303.75, 213.75].map(d => d * Math.PI / 180), LTHR = 1.2666;
 const LPHI = [-161.4138, 108.5862, 18.5862].map(d => d * Math.PI / 180);   // v4 pilot-track angles (experiments/r9_entrain.js)
@@ -95,13 +95,16 @@ const jit = () => state.jitter ? Math.round((2 * Math.random() - 1) * state.jitt
 
 /* v3 listeners, or (v4) the same listeners with a pilot track: weight 0, so it never loads the platform,
    kickWeight 1, so it pulls the turntable into step with the sender's exit rhythm. */
+/* v5: wide windows (gate kappa 4, threshold 0.4 of the best single load) are 8 ticks = 90 deg wide, like the
+   effective gamma-phase range in V4 (Drebitz et al. 2025); the v3 windows are 4 ticks = 45 deg. */
 function buildListeners() {
+  const win = state.wide ? { kappa: 4, threshold: 0.9392 } : { threshold: LTHR };
   lis = PSIS.map((psi, k) => state.lock
-    ? new Yard({ theta0: psi, lengths: [12, 4, 12], threshold: LTHR, weights: [0, 1, 1], angles: [LPHI[k], Math.PI, 3 * Math.PI / 2], kick: 0.4, kickWeights: [1, 0, 0] })
-    : new Yard({ theta0: psi, lengths: [12, 4, 12], threshold: LTHR }));
+    ? new Yard({ theta0: psi, lengths: [12, 4, 12], weights: [0, 1, 1], angles: [LPHI[k], Math.PI, 3 * Math.PI / 2], kick: 0.4, kickWeights: [1, 0, 0], ...win })
+    : new Yard({ theta0: psi, lengths: [12, 4, 12], ...win }));
   if (y) lis.forEach(L => L.run(y.t));                                // keep listener time in step with the sender
   arrivals = []; pilots = []; lisFlash = [0, 0, 0];
-  $('lockBtn').classList.toggle('on', state.lock);
+  $('lockBtn').classList.toggle('on', state.lock); $('wideBtn').classList.toggle('on', state.wide);
   $('lockNote').textContent = state.lock ? 'pilot: one carriage per sender rotation, kick 0.4' : '';
 }
 
@@ -189,8 +192,9 @@ function bindGlobal() {
   $('pXor').onclick = () => { preset({ lengths: [12, 12, 12], patterns: [[0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]], offsets: [0, 0, 0], threshold: 0.75, kick: 0, growth: 0, repeat: false, phaseOut: 0, aisMode: 'vector', weights: [1, 1, 0.65], cycle: 'xor' }); truthTable(); };
   $('jit').value = state.jitter; $('jit').oninput = () => { state.jitter = +$('jit').value; syncLabels(); };
   $('lockBtn').onclick = () => { state.lock = !state.lock; buildListeners(); };
+  $('wideBtn').onclick = () => { state.wide = !state.wide; buildListeners(); };
   $('pLockL').onclick = () => { $('pAddr').onclick(); state.lock = true; buildListeners();
-    $('lockNote').textContent = 'Now move the axon bias. Unlocked (v3) listeners re-address; locked ones re-lock within a few rotations and every input finds its own listener again. Axon jitter still breaks them: it hits the data trains too.'; };
+    $('lockNote').textContent = 'Now move the axon bias. Unlocked (v3) listeners re-address; locked ones re-lock within a few rotations and every input finds its own listener again. Axon jitter still breaks them: it hits the data trains too. Then try wide windows.'; };
   $('pLock').onclick = () => preset({ lengths: [12, 12, 12], patterns: [[1, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]], offsets: [0, 0, 0], threshold: 4, kick: 0.4, growth: 0, repeat: false, lockInput: 36 });
 }
 
@@ -200,7 +204,7 @@ function preset(p) {
   state.cfg.threshold = p.threshold; state.cfg.kick = p.kick; state.cfg.growth = p.growth; state.cfg.period = 32;
   state.repeat = p.repeat; lockInput = p.lockInput || 0;
   state.cfg.phaseOut = p.phaseOut || 0; state.cfg.weights = p.weights ? [...p.weights] : [1, 1, 1]; state.cycle = p.cycle || null;
-  state.addrOffsets = null; state.bias = 0; state.lock = false; state.jitter = 0; $('jit').value = 0; $('po').value = state.cfg.phaseOut; $('bias').value = 0; $('cycleNote').textContent = '';
+  state.addrOffsets = null; state.bias = 0; state.lock = false; state.wide = false; state.jitter = 0; $('jit').value = 0; $('po').value = state.cfg.phaseOut; $('bias').value = 0; $('cycleNote').textContent = '';
   $('cw').textContent = state.cfg.weights[2].toFixed(2);
   $('repeat').classList.toggle('on', state.repeat);
   for (const [id, key] of [['period', 'period'], ['thr', 'threshold'], ['kick', 'kick'], ['growth', 'growth']]) $(id).value = state.cfg[key];
@@ -317,7 +321,7 @@ function draw() {
     cx.strokeStyle = '#d7e6f0'; cx.lineWidth = 5; cx.beginPath(); cx.moveTo(...a2); cx.lineTo(...a1); cx.stroke();
     cx.fillStyle = '#f2d38a'; cx.beginPath(); cx.arc(...a1, 4, 0, TAU); cx.fill();
     cx.fillStyle = '#c7d8e4'; cx.font = '12px system-ui'; cx.textAlign = 'left';
-    cx.fillText(`listener ${k + 1}: ${L.carriagesOut()}`, LX + LR + 8, ly + 4);
+    cx.fillText(`listener ${k + 1}: ${L.departures.length}`, LX + LR + 8, ly + 4);
   });
   // turntable
   cx.fillStyle = '#122233'; cx.strokeStyle = '#3c5a74'; cx.lineWidth = 2; cx.beginPath(); cx.arc(CX, CY, RAD, 0, TAU); cx.fill(); cx.stroke();
@@ -363,7 +367,7 @@ function stats() {
   $('sT').textContent = y.t; $('sRot').textContent = y.rotation; $('sOut').textContent = y.carriagesOut();
   $('sCap').textContent = y.delivered > 0 ? (100 * y.captured / y.delivered).toFixed(0) + '%' : '-';
   $('sLoad').textContent = y.load.toFixed(2) + (Math.hypot(y.zr, y.zi) > 1e-3 ? `  |z| ${Math.hypot(y.zr, y.zi).toFixed(2)}` : '');
-  lis.forEach((L, k) => { $('Ln' + k).textContent = L.carriagesOut(); }); $('sLen').textContent = y.len.map(v => v.toFixed(1)).join(' / ');
+  lis.forEach((L, k) => { $('Ln' + k).textContent = L.departures.length; }); $('sLen').textContent = y.len.map(v => v.toFixed(1)).join(' / ');
 }
 
 let lastLenShown = '';
@@ -381,7 +385,7 @@ function step() {
     lis.forEach((L, k) => {
       for (const a of arrivals) if (a === L.t) L.carriage(1, 0, 1);
       for (const a of pilots) if (a === L.t) L.carriage(0, 0, 1);
-      const before = L.carriagesOut(); L.tick(); if (L.carriagesOut() > before) lisFlash[k] = 20;
+      const before = L.departures.length; L.tick(); if (L.departures.length > before) lisFlash[k] = 20;
       if (lisFlash[k] > 0) lisFlash[k]--;
     });
     arrivals = arrivals.filter(a => a >= lis[0].t); pilots = pilots.filter(a => a >= lis[0].t);

@@ -115,3 +115,28 @@ test('clock learning tracks a sender of another period; the locked XOR survives 
   }
   assert.notStrictEqual(R9.xorTruth(lock, { shiftC: 3 }), '0110'); // C's own timing is still tight
 });
+
+/* ---- v5 / R10: time windows and path sums ---- */
+const R10 = require('../experiments/r10_windows.js');
+
+test('the vector platform is exactly a one-frequency path sum; a second clock breaks the alias', () => {
+  const c = R10.r10c();
+  assert.ok(c.identity.max_abs_error_measured_vs_path_sum < 1e-9);
+  assert.ok(c.two_routes_abs_z_over_single.delta_16 < 1e-9 && Math.abs(c.two_routes_abs_z_over_single.delta_32 - 2) < 1e-9);
+  assert.ok(c.aliasing.clock_32_difference < 1e-9 && c.aliasing.clock_37_relative_difference > 0.5);
+  assert.ok(c.stationary_phase.remove_9_central_routes < 0.5 && c.stationary_phase.remove_9_edge_routes > 0.8);
+});
+
+test('a window as wide as the address spacing buys the full spacing in jitter', () => {
+  const v3 = R10.shiftSpan(R10.addressBook(8, 0.6, 4)), wide = R10.shiftSpan(R10.addressBook(4, 0.4, 4));
+  assert.strictEqual(v3.span, 4);
+  assert.deepStrictEqual(wide, { span: 8, from: -3, to: 4 });   // 4 addresses, 8 ticks apart
+  assert.strictEqual(R10.windowTicks(4, 0.4), 8);                // 90 degrees
+});
+
+test('a locked listener listening away from the pilot keeps a time-yoked window; clock learning stretches it', () => {
+  const w = (Ps, learn) => R10.lockedWindow(Ps, learn, 2).fwhm_ticks;
+  const kick = w(35, 0) / w(29, 0), learn = w(35, 0.01) / w(29, 0.01);
+  assert.ok(Math.abs(kick - 1) < 0.03, `kick-only ratio ${kick}`);
+  assert.ok(learn > 1.1, `clock-learning ratio ${learn}`);
+});

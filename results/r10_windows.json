@@ -1,0 +1,488 @@
+{
+ "R10a_window_width": {
+  "note": "window = arrival ticks (of 32) that make one listener fire; 1 tick = 11.25 deg",
+  "window_ticks": {
+   "kappa_16": {
+    "thr_0.8": 2,
+    "thr_0.6": 4,
+    "thr_0.4": 5,
+    "thr_0.25": 6
+   },
+   "kappa_8": {
+    "thr_0.8": 2,
+    "thr_0.6": 4,
+    "thr_0.4": 6,
+    "thr_0.25": 7
+   },
+   "kappa_4": {
+    "thr_0.8": 3,
+    "thr_0.6": 5,
+    "thr_0.4": 8,
+    "thr_0.25": 10
+   },
+   "kappa_2": {
+    "thr_0.8": 4,
+    "thr_0.6": 7,
+    "thr_0.4": 10,
+    "thr_0.25": 13
+   },
+   "kappa_1": {
+    "thr_0.8": 6,
+    "thr_0.6": 10,
+    "thr_0.4": 14,
+    "thr_0.25": 20
+   }
+  },
+  "by_address_count": {
+   "2": {
+    "spacing_ticks": 16,
+    "v3_listener": {
+     "shifts_survived": {
+      "span": 4,
+      "from": -1,
+      "to": 2
+     }
+    },
+    "best_listener": {
+     "kappa": 1,
+     "thr": 0.4,
+     "window_ticks": 14,
+     "shifts_survived": {
+      "span": 14,
+      "from": -6,
+      "to": 7
+     }
+    },
+    "random_jitter_accuracy": {
+     "sigma_0.5": {
+      "v3_listener": 0.9967,
+      "best_listener": 1
+     },
+     "sigma_1": {
+      "v3_listener": 0.93,
+      "best_listener": 1
+     },
+     "sigma_2": {
+      "v3_listener": 0.6233,
+      "best_listener": 1
+     },
+     "sigma_3": {
+      "v3_listener": 0.5033,
+      "best_listener": 0.98
+     }
+    }
+   },
+   "3": {
+    "spacing_ticks": 10.6667,
+    "v3_listener": {
+     "shifts_survived": {
+      "span": 4,
+      "from": -1,
+      "to": 2
+     }
+    },
+    "best_listener": {
+     "kappa": 4,
+     "thr": 0.25,
+     "window_ticks": 10,
+     "shifts_survived": {
+      "span": 10,
+      "from": -4,
+      "to": 5
+     }
+    },
+    "random_jitter_accuracy": {
+     "sigma_0.5": {
+      "v3_listener": 1,
+      "best_listener": 1
+     },
+     "sigma_1": {
+      "v3_listener": 0.9133,
+      "best_listener": 1
+     },
+     "sigma_2": {
+      "v3_listener": 0.6667,
+      "best_listener": 0.9767
+     },
+     "sigma_3": {
+      "v3_listener": 0.4867,
+      "best_listener": 0.8833
+     }
+    }
+   },
+   "4": {
+    "spacing_ticks": 8,
+    "v3_listener": {
+     "shifts_survived": {
+      "span": 4,
+      "from": -1,
+      "to": 2
+     }
+    },
+    "best_listener": {
+     "kappa": 4,
+     "thr": 0.4,
+     "window_ticks": 8,
+     "shifts_survived": {
+      "span": 8,
+      "from": -3,
+      "to": 4
+     }
+    },
+    "random_jitter_accuracy": {
+     "sigma_0.5": {
+      "v3_listener": 1,
+      "best_listener": 1
+     },
+     "sigma_1": {
+      "v3_listener": 0.9367,
+      "best_listener": 1
+     },
+     "sigma_2": {
+      "v3_listener": 0.7,
+      "best_listener": 0.9567
+     },
+     "sigma_3": {
+      "v3_listener": 0.57,
+      "best_listener": 0.85
+     }
+    }
+   },
+   "5": {
+    "spacing_ticks": 6.4,
+    "v3_listener": {
+     "shifts_survived": {
+      "span": 4,
+      "from": -1,
+      "to": 2
+     }
+    },
+    "best_listener": {
+     "kappa": 16,
+     "thr": 0.25,
+     "window_ticks": 6,
+     "shifts_survived": {
+      "span": 6,
+      "from": -2,
+      "to": 3
+     }
+    },
+    "random_jitter_accuracy": {
+     "sigma_0.5": {
+      "v3_listener": 1,
+      "best_listener": 1
+     },
+     "sigma_1": {
+      "v3_listener": 0.9167,
+      "best_listener": 0.9933
+     },
+     "sigma_2": {
+      "v3_listener": 0.67,
+      "best_listener": 0.86
+     },
+     "sigma_3": {
+      "v3_listener": 0.51,
+      "best_listener": 0.6933
+     }
+    }
+   },
+   "6": {
+    "spacing_ticks": 5.3333,
+    "v3_listener": {
+     "shifts_survived": {
+      "span": 4,
+      "from": -1,
+      "to": 2
+     }
+    },
+    "best_listener": {
+     "kappa": 16,
+     "thr": 0.4,
+     "window_ticks": 5,
+     "shifts_survived": {
+      "span": 5,
+      "from": -2,
+      "to": 2
+     }
+    },
+    "random_jitter_accuracy": {
+     "sigma_0.5": {
+      "v3_listener": 0.9967,
+      "best_listener": 1
+     },
+     "sigma_1": {
+      "v3_listener": 0.94,
+      "best_listener": 0.98
+     },
+     "sigma_2": {
+      "v3_listener": 0.6567,
+      "best_listener": 0.79
+     },
+     "sigma_3": {
+      "v3_listener": 0.5067,
+      "best_listener": 0.5967
+     }
+    }
+   },
+   "8": {
+    "spacing_ticks": 4,
+    "v3_listener": {
+     "shifts_survived": {
+      "span": 4,
+      "from": -1,
+      "to": 2
+     }
+    },
+    "best_listener": {
+     "kappa": 16,
+     "thr": 0.6,
+     "window_ticks": 4,
+     "shifts_survived": {
+      "span": 4,
+      "from": -1,
+      "to": 2
+     }
+    },
+    "random_jitter_accuracy": {
+     "sigma_0.5": {
+      "v3_listener": 1,
+      "best_listener": 1
+     },
+     "sigma_1": {
+      "v3_listener": 0.94,
+      "best_listener": 0.94
+     },
+     "sigma_2": {
+      "v3_listener": 0.6467,
+      "best_listener": 0.6467
+     },
+     "sigma_3": {
+      "v3_listener": 0.4967,
+      "best_listener": 0.4967
+     }
+    }
+   }
+  },
+  "v3_listener": {
+   "kappa": 8,
+   "thr": 0.6,
+   "window_ticks": 4,
+   "window_deg": 45
+  }
+ },
+ "R10b_time_yoked": {
+  "note": "integration window = full width at half max of the peak platform load against the data offset after the pilot (ticks), listener locked to a sender of period Ps. The pilot pulls 12-21 ticks after it leaves. Data for listener 1 rolls in 13-18 ticks after (inside the pull), for listener 2 21-26 (at its tail), for listener 3 29-34 (outside it).",
+  "sender_period_ratio_35_over_29": 1.2069,
+  "by_listener": {
+   "listener_1": {
+    "kick_only": {
+     "Ps_29": {
+      "fwhm_ticks": 4.6706,
+      "peak_offset": 12
+     },
+     "Ps_32": {
+      "fwhm_ticks": 4.9299,
+      "peak_offset": 9
+     },
+     "Ps_35": {
+      "fwhm_ticks": 5.4772,
+      "peak_offset": 4
+     },
+     "window_ratio_35_over_29": 1.1727
+    },
+    "kick_plus_clock_learning": {
+     "Ps_29": {
+      "fwhm_ticks": 4.6166,
+      "peak_offset": 9
+     },
+     "Ps_32": {
+      "fwhm_ticks": 4.9028,
+      "peak_offset": 9
+     },
+     "Ps_35": {
+      "fwhm_ticks": 5.2529,
+      "peak_offset": 8
+     },
+     "window_ratio_35_over_29": 1.1378
+    }
+   },
+   "listener_2": {
+    "kick_only": {
+     "Ps_29": {
+      "fwhm_ticks": 5.6221,
+      "peak_offset": 20
+     },
+     "Ps_32": {
+      "fwhm_ticks": 5.7893,
+      "peak_offset": 17
+     },
+     "Ps_35": {
+      "fwhm_ticks": 6.7564,
+      "peak_offset": 15
+     },
+     "window_ratio_35_over_29": 1.2018
+    },
+    "kick_plus_clock_learning": {
+     "Ps_29": {
+      "fwhm_ticks": 5.4826,
+      "peak_offset": 16
+     },
+     "Ps_32": {
+      "fwhm_ticks": 5.8044,
+      "peak_offset": 17
+     },
+     "Ps_35": {
+      "fwhm_ticks": 6.1986,
+      "peak_offset": 17
+     },
+     "window_ratio_35_over_29": 1.1306
+    }
+   },
+   "listener_3": {
+    "kick_only": {
+     "Ps_29": {
+      "fwhm_ticks": 5.5147,
+      "peak_offset": 28
+     },
+     "Ps_32": {
+      "fwhm_ticks": 5.4501,
+      "peak_offset": 25
+     },
+     "Ps_35": {
+      "fwhm_ticks": 5.464,
+      "peak_offset": 23
+     },
+     "window_ratio_35_over_29": 0.9908
+    },
+    "kick_plus_clock_learning": {
+     "Ps_29": {
+      "fwhm_ticks": 5.1509,
+      "peak_offset": 24
+     },
+     "Ps_32": {
+      "fwhm_ticks": 5.4632,
+      "peak_offset": 25
+     },
+     "Ps_35": {
+      "fwhm_ticks": 5.8843,
+      "peak_offset": 26
+     },
+     "window_ratio_35_over_29": 1.1424
+    }
+   }
+  }
+ },
+ "R10c_path_sum": {
+  "identity": {
+   "trials": 30,
+   "max_abs_error_measured_vs_path_sum": 4.4345481938316046e-13,
+   "single_carriage_abs_z": 2.2573
+  },
+  "two_routes_abs_z_over_single": {
+   "delta_0": 2,
+   "delta_4": 1.8478,
+   "delta_8": 1.4142,
+   "delta_12": 0.7654,
+   "delta_16": 0,
+   "delta_24": 1.4142,
+   "delta_32": 2,
+   "delta_48": 0,
+   "delta_64": 2
+  },
+  "stationary_phase": {
+   "delays": [
+    100,
+    90,
+    81,
+    72,
+    64,
+    56,
+    49,
+    42,
+    36,
+    30,
+    25,
+    20,
+    16,
+    12,
+    9,
+    6,
+    4,
+    2,
+    1,
+    0,
+    0,
+    0,
+    1,
+    2,
+    4,
+    6,
+    9,
+    12,
+    16,
+    20,
+    25,
+    30,
+    36,
+    42,
+    49,
+    56,
+    64,
+    72,
+    81,
+    90,
+    100
+   ],
+   "partial_sums_from_centre": [
+    {
+     "routes_within": 0,
+     "n_routes": 1,
+     "abs_z_over_single": 1
+    },
+    {
+     "routes_within": 2,
+     "n_routes": 5,
+     "abs_z_over_single": 4.9769
+    },
+    {
+     "routes_within": 4,
+     "n_routes": 9,
+     "abs_z_over_single": 8.6157
+    },
+    {
+     "routes_within": 6,
+     "n_routes": 13,
+     "abs_z_over_single": 10.7066
+    },
+    {
+     "routes_within": 8,
+     "n_routes": 17,
+     "abs_z_over_single": 9.3603
+    },
+    {
+     "routes_within": 10,
+     "n_routes": 21,
+     "abs_z_over_single": 6.0683
+    },
+    {
+     "routes_within": 14,
+     "n_routes": 29,
+     "abs_z_over_single": 8.038
+    },
+    {
+     "routes_within": 20,
+     "n_routes": 41,
+     "abs_z_over_single": 8.9604
+    }
+   ],
+   "remove_9_central_routes": 0.3787,
+   "remove_9_edge_routes": 0.8901,
+   "note": "fraction of the full |z| left after removing routes"
+  },
+  "aliasing": {
+   "clock_32_difference": 4.45729656999288e-14,
+   "clock_37_relative_difference": 0.8238,
+   "two_clocks_distinguish_delays_up_to": 1184
+  }
+ }
+}

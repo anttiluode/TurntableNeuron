@@ -206,12 +206,66 @@ Once locked, the listener's clock error at the moment the data lands is exactly 
 
 **What v4 adds to the picture.** v3 found that timing codes break at about two ticks. v4 splits that fragility in two. **Shared** timing error is a delay or a drift that sender and receiver can agree on through a pilot, and a locked receiver removes it entirely: routing, XOR and the timing bits come back in full. **Private** timing error is jitter on the one train that carries the message, and locking cannot touch it. That jitter still sets the limit, about ±1 tick for the listeners and for XOR. The pilot also changes what an address is. It is no longer "when, on my clock" but "when, after the sender's beat", which is communication through coherence taken literally (Fries 2005, 2015). Second-order phase-locked loops are standard engineering (Gardner, *Phaselock Techniques*). Phase-locking a receiver to a carrier is how radios decode phase codes.
 
+## v5: time windows and path sums (added later on 8 November)
+
+*Two 2025 papers about the time windows of real neurons, plus Feynman's sum over paths, which Antti brought in from a video. v2–v4 numbers are unchanged: the core was not touched, and `results.json`, `r8_phase.json` and `r9_entrain.json` reproduce byte for byte.*
+
+- **Drebitz, Rausch & Kreiter, *Nat Commun* 2025.** The authors microstimulated single spike volleys in macaque V2 while the monkey did an attention task, and recorded downstream in V4. The volleys disturbed V4, and the monkey's behaviour (misses 31.9% against 15%, reaction times 45–70 ms slower), only when they arrived in an **effective phase range of about ±45° of V4's gamma cycle** (40–80 Hz). V4's spiking response came from a range about 90° wide. That is causal evidence that a receiver's rhythm decides whether a well-timed train counts: R8b's listener windows, in a real brain.
+- **Norman-Haignere et al., *Nat Neurosci* 2025.** The authors stretched or compressed speech by √3 each way, a threefold change in phoneme and word durations. Integration windows in human auditory cortex changed by only **about 5%**, even in non-primary, speech-selective regions. The windows are **yoked to absolute time, not to structure.**
+
+All numbers come from `node experiments/r10_windows.js`; see [`results/r10_windows.json`](results/r10_windows.json).
+
+**R10a. A window should be as wide as the spacing between addresses.** In v3 the listener windows were 4 ticks wide (45°), but the addresses were 8 ticks apart. Window width in ticks out of 32, for a listener with gate sharpness κ and threshold = fraction × best single load:
+
+| κ \ threshold | 0.8 | 0.6 | 0.4 | 0.25 |
+|---|---|---|---|---|
+| 16 | 2 | 4 | 5 | 6 |
+| 8 (v3) | 2 | **4** (v3) | 6 | 7 |
+| 4 | 3 | 5 | **8** (= 90°) | 10 |
+| 2 | 4 | 7 | 10 | 13 |
+| 1 | 6 | 10 | 14 | 20 |
+
+Next, K addresses are spread evenly over one rotation, with one listener per address. The table shows the shifts every route survives, for the v3 listener and for the best listener on that grid:
+
+| Addresses K | Spacing (ticks) | v3 listener | Best listener (κ, threshold → window) | Accuracy at Gaussian jitter σ = 2: v3 → best |
+|---|---|---|---|---|
+| 2 | 16 | −1…+2 | −6…+7 (κ 1, 0.4 → 14) | 0.62 → 1.00 |
+| 3 | 10.7 | −1…+2 | **−4…+5** (κ 4, 0.25 → 10) | 0.67 → 0.98 |
+| 4 | 8 | −1…+2 | **−3…+4** (κ 4, 0.4 → 8) | 0.70 → 0.96 |
+| 5 | 6.4 | −1…+2 | −2…+3 (κ 16, 0.25 → 6) | 0.67 → 0.86 |
+| 6 | 5.3 | −1…+2 | −2…+2 (κ 16, 0.4 → 5) | 0.66 → 0.79 |
+| 8 | 4 | −1…+2 | −1…+2 (κ 16, 0.6 → 4) | 0.65 → 0.65 |
+
+From K = 3 to 8, the best tolerance equals the spacing, rounded down to whole ticks, and the window that achieves it is as wide as the spacing. (At K = 2 the gate can't open quite wide enough: 14 of 16.) The v3 listeners were sized for 8 addresses while carrying 3. So most of the "private jitter" fragility in v3 and v4 came from the listeners, not from the trains. The trade is exact: **K addresses per rotation buy ±P/2K ticks of jitter.** A ±45° window, as in Drebitz et al., is the K = 4 point: **about four addresses per gamma cycle.** (The lab's new *Wide listener windows* button uses κ 4 and threshold 0.4. Locked and wide, the lab routes about 92% correctly at ±2 ticks of axon jitter, against about 62% with v3 windows.)
+
+**R10b. Time-yoked or rhythm-yoked?** A listener is locked to a sender whose period is 29, 32 or 35 ticks (a ratio of 1.21). Its integration window is measured as the full width at half maximum of its platform load against the data's arrival time:
+
+| | Window in ticks at sender period 29 / 32 / 35 | Ratio 35 : 29 |
+|---|---|---|
+| listener 3, kick only (it listens after the pilot's pull has ended) | 5.51 / 5.45 / 5.46 | **0.99** (time-yoked) |
+| listener 3, kick + clock learning | 5.15 / 5.46 / 5.88 | 1.14 |
+| listener 1, kick only (it listens during the pilot's pull) | 4.67 / 4.93 / 5.48 | 1.17 |
+| listener 2, kick only (it listens at the tail of the pull) | 5.62 / 5.79 / 6.76 | 1.20 |
+
+There are two ways a window can follow the sender's rhythm. Clock learning makes the whole turntable run at the sender's speed. Separately, a window that falls while the pilot is still pulling gets stretched or squeezed by the pull itself. A listener that does neither keeps a window fixed in ticks, as auditory cortex does. In R9c terms, auditory cortex behaves like kick alone with timings in ticks, not like clock learning. Norman-Haignere's 5% for a threefold change says real receivers stay on their own clock, and the yard says that only holds if the alignment kick lands away from the moment of listening.
+
+**R10c. The vector platform is a Feynman sum at one frequency.** v3's platform adds e^{iθ(t)} for every accepted piece. A platform that always listens (κ = 0, no leak) therefore holds z = S · Σ_routes a_γ e^{iωT_γ}, where S is one carriage's contribution and ω = 2π/32. This checks to **4 × 10⁻¹³** over 30 random route sets. Consequences:
+
+- **Two routes interfere** as |2 cos(πΔ/32)|. Measured |z|, relative to one route, at delay difference Δ = 0, 8, 12, 16, 24, 32, 48, 64: 2, 1.41, 0.77, **0**, 1.41, **2**, **0**, **2**.
+- **Stationary phase.** Take 41 routes with delays round(0.25(m − 20)²), slowest-varying at the centre. Partial sums from the centre outward (|z| over one route) go 1, 5.0, 8.6, **10.7**, 9.4, 6.1, 8.0, 9.0: a Cornu spiral. Removing the 9 central routes leaves **38%** of |z|; removing 9 routes at one edge leaves 89%. The routes near the stationary time carry the sum, exactly as in Feynman's account of least time.
+- **Aliasing.** Delays T and T + 32 are indistinguishable on the 32-tick clock (difference 4 × 10⁻¹⁴) but differ by 82% on a 37-tick clock. Two clocks with periods 32 and 37 separate delays up to 32 × 37 = 1,184 ticks. This is the Chinese remainder theorem, the reason RoPE uses many frequencies, and the reason grid cells come in modules (Fiete, Burak & Brookings 2008).
+
+The load platform is the incoherent case: ray optics, which only adds sizes. The vector platform is the coherent case: wave optics, which adds phases. v4's pilot is what makes the second possible, because it gives every arrival the same clock.
+
+**What v5 adds to the picture.** Address count, window width and jitter tolerance are one trade, and a real cortex sits near four addresses per cycle with windows a quarter of a cycle wide. Real receivers keep windows fixed in absolute time; the yard reproduces that only when the steering pull and the listening happen at different moments. And the vector platform needs no new mechanism to count as interference: it is literally a single-frequency path sum. Adding clocks adds frequencies.
+
 ## Where it could go
 
 1. **Two yards.** Feed one yard's exit into another's track, and add an inhibitory track that *removes* carriages. That is the smallest network that can compute XOR. Measure what that network needs.
 2. **Entrain plus grow.** Let the turntable lock to a rhythmic world while the tracks grow to its timing. Does the yard tune itself to a rhythm it has never been told about?
-3. ~~Route by phase~~ (v3) and ~~make it robust to shared delay~~ (v4, above). Next: **private** jitter. One train is one sample. Send each message as a short burst, or across several redundant branches, and let the listener's platform average them. How many carriages does one tick of jitter cost?
+3. ~~Route by phase~~ (v3), ~~robust to shared delay~~ (v4), ~~size windows to the address spacing~~ (v5). Still open: **bursts and redundancy.** A burst of carriages, or several branches, let the platform average private jitter. How many carriages does one tick of jitter cost?
 4. **Learn when to send.** Growth taught tracks when to *receive*. Can the axon bias grow so the right neighbour listens, using only the listeners' replies?
+5. **Learn routes in a multi-layer yard without a map** (from the Feynman thread). A junction x is on a shortest A→B route exactly when t_A(x) + t_B(x) = T_min. Send forward trains from A and reply trains from B, and grow junctions where the two arrive in the same window. Add a traffic-dependent split at junctions (share ∝ flow^γ: γ = 1 blurs routes together, γ > 1 lets one route win, as in Physarum network models, Tero et al. 2010).
 
 ## Run
 
@@ -219,7 +273,8 @@ Once locked, the listener's clock error at the moment the data lands is exactly 
 node experiments/run.js                  # ~2 s, writes results/results.json
 node experiments/r8_phase.js             # ~4 s, writes results/r8_phase.json
 node experiments/r9_entrain.js           # ~25 s, writes results/r9_entrain.json
-node --test tests/turntable.test.js      # 16 tests
+node experiments/r10_windows.js          # ~25 s, writes results/r10_windows.json
+node --test tests/turntable.test.js      # 19 tests
 ```
 
 Open `index.html` (or the Pages link) for the lab. **Presets:**
@@ -229,4 +284,4 @@ Open `index.html` (or the Pages link) for the lab. **Presets:**
 - **Entrain:** kick 0.4 with a 36-tick input.
 - **Address listeners** (v3): one carriage on A, B or C every other rotation; each lights its own listener. Then move the axon bias by 8.
 - **XOR** (v3): the exit reads |z|; A alone and C alone leave, A + C cancel. The truth-table button compares load and vector exits at the current threshold.
-- **Locked listeners** (v4): Address listeners with the pilot lock on. Move the axon bias and the routes come back within a few rotations; add axon jitter and routes fail anyway (about 30% missed at ±1, 40% at ±2, because the jitter hits the data trains too). The lock button and the jitter slider work with any preset.
+- **Locked listeners** (v4): Address listeners with the pilot lock on. Move the axon bias and the routes come back within a few rotations; add axon jitter and routes fail anyway (about 30% missed at ±1, 40% at ±2, because the jitter hits the data trains too). The lock button, the jitter slider and the **Wide listener windows** button (v5) work with any preset. Listener counts are departures (firing events).
